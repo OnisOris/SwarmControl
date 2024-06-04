@@ -1,5 +1,5 @@
 import numpy as np
-
+from body import Body
 
 def rot_x(vector: list | np.ndarray, angle: float | int) -> np.ndarray:
 
@@ -30,8 +30,11 @@ class Drone:
     Класс единицы дрона в трехмерном пространстве.
     """
 
-    def __init__(self, point: list[0, 0, 0] | np.ndarray,
-                 orientation: list[1, 0, 0] | np.ndarray):
+    def __init__(self, point: np.ndarray = np.array([0, 0, 0]),
+                 orientation: np.ndarray = np.array([[1, 0, 0],
+                                                    [0, 1, 0],
+                                                    [0, 0, 1]]),
+                 ax=None):
         """
         В данной реализации дрон имеет координату point и вектор ориантации orintation в глобальной системе координат
         :param point:
@@ -39,6 +42,13 @@ class Drone:
         """
         self.point = point
         self.orientation = orientation
+        self.ax = ax
+        self.body = Body(self.point, self.orientation, ax=self.ax)
+
+
+
+    def attach_body(self, body):
+        self.body = body
 
     def goto(self, point: None = None | list | np.ndarray, orientation: None = None | list | np.ndarray):
         """
@@ -88,14 +98,8 @@ class Drone:
         if apply:
             self.apply_position()
 
-    def show(self, ax):
-        ax.quiver(self.point[0],
-                  self.point[1],
-                  self.point[2],
-                  self.orientation[0],
-                  self.orientation[1],
-                  self.orientation[2],
-                  color='r')
+    def show(self):
+        self.body.show()
 
 
 class Darray:
