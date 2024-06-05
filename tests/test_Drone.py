@@ -1,13 +1,32 @@
 from swarmsys import *
-from ThreeDTool import Dspl
+from dspl import Dspl
 import numpy as np
-dp = Dspl([], qt=True)
-point = np.array([0, 0, 0])
+from body import Body
+from ThreeDTool import Points
+
+point = np.array([0, 1, 0])
 ori = np.eye(3)
 
-drone = Drone(point, ori, ax=dp.ax)
-dp.input_array.append(drone)
-drone.show()
+# drone = Drone(point, ori)
+# drone2 = Drone(point, ori)
+# drone2.rot_z(np.pi/4, apply=True)
+#
+# drone3 = Drone(point, ori)
+# drone3.rot_z(np.pi/4*2, apply=True)
+#
+# drone4 = Drone(point, ori)
+# drone4.rot_z(np.pi/4*3, apply=True)
+
+drones = []
+for i in range(8):
+    drones.append(Drone(point, ori))
+    drones[-1].rot_z(np.pi/4*i, apply=True)
+point_rot = Points([[0, 0, 0]], text=True, s=10)
+drones.append(point_rot)
+dp = Dspl(drones, create_subplot=True, qt=True)
+# drone.rot_x(np.pi/4, apply=True)
+# drone.self_show()
+dp.show()
 #
 # for i in range(4):
 #     drones.append(Drone(point=[i, i, 0], orientation=[(-1)**i, i, 0]))
