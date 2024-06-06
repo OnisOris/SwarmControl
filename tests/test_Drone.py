@@ -16,12 +16,13 @@ ori = np.eye(3)
 #
 # drone4 = Drone(point, ori)
 # drone4.rot_z(np.pi/4*3, apply=True)
-
+rot_point = np.array([1, 0, 0])
+zero_point = np.array([0, 0, 0])
 drones = []
 for i in range(8):
     drones.append(Drone(point, ori))
-    drones[-1].rot_z(np.pi/4*i, apply=True)
-point_rot = Points([[0, 0, 0]], text=True, s=10)
+    drones[-1].rot_z(np.pi/4*i, rot_point, apply=True)
+point_rot = Points([rot_point, zero_point], text=True, s=10)
 drones.append(point_rot)
 dp = Dspl(drones, create_subplot=True, qt=True)
 # drone.rot_x(np.pi/4, apply=True)

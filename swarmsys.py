@@ -115,9 +115,20 @@ class Drone:
         if apply:
             self.apply_position()
 
-    def rot_z(self, angle: float | int, rot_point: np.ndarray = np.array([1, 0, 0]), apply: bool = False) -> None:
+    def rot_z(self, angle: float | int, rot_point: np.ndarray = np.array([1, 0, 0]), apply: bool = True) -> None:
+        """
+        Данная функция вращает дрон вокруг выбранного центра rot_point.
+        :param angle: Угол поворота в радианах
+        :type angle: float | int
+        :param rot_point: Коодинаты оси поворота
+        :type rot_point: list[float, int] | np.ndarray[float, int]
+        :param apply: Отправлять ли данные в дроны?
+        :type apply: bool
+        :return: None
+        """
         self.orientation = rot_z(self.orientation, -angle)
-        self.point = rot_z(self.point - rot_point, angle) + rot_z(self.point, angle)
+        # self.point = rot_z(self.point - rot_point, angle) + rot_z(self.point, angle)
+        self.point = rot_z(self.point - rot_point, angle) + rot_point
         if apply:
             self.apply_position()
     # def rot_z(self, angle: float | int, rot_point: np.ndarray = np.array([1, 0, 0]), apply: bool = False) -> None:
@@ -149,23 +160,25 @@ class Darray:
         self.drones = drones
         self.xyz = xyz  # Координата массива дронов во внешней системе координат
         self.orientation = orientation  # Вектор ориентации системы коорднат массива дронов
+        self.length = 5
+        # self.body = Body(self.point, self.orientation)
 
     def __getitem__(self, item):
         return self.drones[item]
 
     def create_square_array(self, sizes: list | np.ndarray = np.array([[-10, 10], [-10, 10]]),
-                            number_of_drones: int = 10) -> None:
+                            number_of_drones: int = 10, center_point: np.ndarray = np.array([0, 0, 0])) -> None:
         """
         Функция генерирует квадрат из дронов
-        :param length: Длина квадрата
-        :type length: float
-        :param width: Ширина квадрата
-        :type width: float
+        :param sizes: Размер массива по x и по y
+        :type sizes: list or np.ndarray
+        :param center_point: Центральная точка формирования массива дронов
+        :type center_point: np.ndarray
         :return:
         """
-
-        x = np.linspace(sizes[0, 0], sizes[0, 1], number_of_drones)
-        y = np.linspace(sizes[1, 0], sizes[1, 1], number_of_drones)
+        self.xyz = center_point
+        x = np.linspace(sizes[0, 0], sizes[0, 1], number_of_drones) - center_point[0]
+        y = np.linspace(sizes[1, 0], sizes[1, 1], number_of_drones) - center_point[1]
         z = np.ones(number_of_drones ** 2)
         x_m, y_m = np.meshgrid(x, y)
         x_m = x_m.reshape(-1)
@@ -216,16 +229,27 @@ class Darray:
         if apply:
             self.apply_position()
 
-    def rot_z(self, angle: float | int, rot_point: np.ndarray = np.array([1, 0, 0]), apply: bool = False) -> None:
-        self.orientation = rot_z(self.orientation, angle)
+    def rot_z(self, angle: float | int, rot_point: np.ndarray = np.array([0, 0, 0]), apply: bool = True) -> None:
+        self.orientation = rot_z(self.orientation, -angle)
         for drone in self.drones:
-            drone.orientation = rot_z(drone.orientation - rot_point, angle) + rot_point
+            drone.rot_z(angle, rot_point, apply)
+        self.xyz = rot_z(self.xyz - rot_point, angle) + rot_point
         if apply:
             self.apply_position()
 
     def show(self, ax):
         for drone in self.drones:
             drone.show(ax)
+
+        ax.quiver(self.xyz[0], self.xyz[1], self.xyz[2],
+                  self.orientation[0, 0], self.orientation[0, 1], self.orientation[0, 2],
+                  length=self.length, color='r')
+        ax.quiver(self.xyz[0], self.xyz[1], self.xyz[2],
+                  self.orientation[1, 0], self.orientation[1, 1], self.orientation[1, 2],
+                  length=self.length, color='g')
+        ax.quiver(self.xyz[0], self.xyz[1], self.xyz[2],
+                  self.orientation[2, 0], self.orientation[2, 1], self.orientation[2, 2],
+                  length=self.length, color='b')
 
     def self_show(self):
         dp = Dspl(self.drones, create_subplot=True, qt=True)
