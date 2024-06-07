@@ -22,14 +22,11 @@ class Body:
 
     def show(self, ax) -> None:
         """
-        Функция отображает траекторию
+        Функция отображает ориентацию тела в глобальной системе координат
         :param ax:
         :type ax: matplotlib.axes.Axes
         :return: None
         """
-        ax.set_xlim(self.lim_x)
-        ax.set_ylim(self.lim_y)
-        ax.set_zlim(self.lim_z)
         ax.quiver(self.point[0], self.point[1], self.point[2],
                   self.orientation[0, 0], self.orientation[0, 1], self.orientation[0, 2],
                       length=self.length, color='r')
