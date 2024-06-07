@@ -1,8 +1,6 @@
 from body import Body
 from ThreeDTool import Dspl
 import matplotlib.pyplot as plt
-# # import matplotlib as mpl
-# # mpl.use('Qt5Agg')
 
 b = Body()
 d = Dspl([b], qt=True)
