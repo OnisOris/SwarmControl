@@ -33,6 +33,13 @@ class Dspl:
         self.ax.set_ylabel('Y Label')
         self.ax.set_zlabel('Z Label')
 
+    def limits(self, x: list | np.ndarray = np.array([-1, 1]),
+               y: list | np.ndarray = np.array([-1, 1]),
+               z: list | np.ndarray = np.array([-1, 1])) -> None:
+        self.ax.set_xlim(x[0], x[1])
+        self.ax.set_ylim(y[0], y[1])
+        self.ax.set_zlim(z[0], z[1])
+
     def show(self) -> None:
         """
         Функция отображает траекторию
