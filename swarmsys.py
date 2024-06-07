@@ -57,7 +57,8 @@ class Drone:
     def __init__(self, point: np.ndarray = np.array([0, 0, 0]),
                  orientation: np.ndarray = np.array([[1, 0, 0],
                                                      [0, 1, 0],
-                                                     [0, 0, 1]])):
+                                                     [0, 0, 1]]),
+                 drone=None):
         """
         В данной реализации дрон имеет координату point и вектор ориантации orintation в глобальной системе координат
         :param point:
@@ -67,6 +68,7 @@ class Drone:
         self.orientation = orientation
         self.body = Body(self.point, self.orientation)
         self.trajectory = np.array([])
+        self.drone = drone
 
     def attach_body(self, body):
         self.body = body
@@ -93,7 +95,6 @@ class Drone:
             self.orientation = orientation
         if orientation is None:
             self.point = point
-
         self.apply_position()
 
     def apply_position(self) -> None:
@@ -104,6 +105,12 @@ class Drone:
         # Здесь будет код для перемещения дрона, например через piosdk
         self.body.orientation = self.orientation
         self.body.point = self.point
+        if self.drone is not None:
+            self.drone.go_to_local_point(self.point[0], self.point[1], self.point[2], yaw=0)
+            # while not self.drone.point_reached():
+            #     a = self.drone.get_local_position_lps()
+            #     if a is not None:
+            #         print(a)
 
     def euler_rotate(self, alpha: float, beta: float, gamma: float, apply: bool = False) -> None:
         self.rot_z(alpha)
@@ -168,6 +175,11 @@ class Drone:
     def show(self, ax):
         self.body.show(ax)
 
+    def arm(self) -> None:
+        self.drone.arm()
+    def takeoff(self) -> None:
+        self.drone.takeoff()
+
 
 class Darray:
     """
@@ -189,7 +201,8 @@ class Darray:
         return self.drones[item]
 
     def create_square_array(self, sizes: list | np.ndarray = np.array([[-10, 10], [-10, 10]]),
-                            number_of_drones: int = 4, center_point: np.ndarray = np.array([0, 0, 0])) -> None:
+                            number_of_drones: int = 4, center_point: np.ndarray = np.array([0, 0, 0]),
+                            pio_drones=None) -> None:
         """
         Функция генерирует квадрат из дронов
         :param sizes: Размер массива по x и по y
@@ -211,13 +224,17 @@ class Darray:
         for point in points:
             drones = np.hstack((drones, Drone(point, self.orientation)))
         self.drones = drones
+        if pio_drones is not None:
+            for i, drone in enumerate(self.drones):
+                drone.drone = pio_drones[i]
 
     def fasten(self) -> None:
         """
         Данная функция перемещает дроны в установленный скелет массива
         :return:
         """
-        pass
+        for drone in self.drones:
+            drone.goto(drone.point)
 
     def unfasten(self) -> None:
         """
@@ -314,3 +331,11 @@ class Darray:
         for drone in self.drones:
             drone.show(dp.ax)
         dp.show()
+
+    def arm(self):
+        for drone in self.drones:
+            drone.arm()
+
+    def takeoff(self) -> None:
+        for drone in self.drones:
+            drone.takeoff()
