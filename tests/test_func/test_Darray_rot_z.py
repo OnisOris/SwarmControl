@@ -12,5 +12,8 @@ for j, arr in enumerate(arrs):
     arr.rot_z(np.pi/4*j, rot_point=rot_point, apply=True)
 
 dp = Dspl(arrs + [p], qt=True)
-dp.limits(x=[-10, 80], y=[-10, 80], z=[-10, 80])
+lim_1 = -20
+lim_2 = 30
+dp.limits(x=[lim_1, lim_2], y=[lim_1, lim_2], z=[lim_1, lim_2])
+dp.ax.title.set_text(f'Вращение массива дронов по оси z и точки {rot_point}')
 dp.show()

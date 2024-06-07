@@ -2,6 +2,7 @@ import numpy as np
 from numpy import cos, sin, pi
 from body import Body
 from dspl import Dspl
+from ThreeDTool import Line_segment
 from loguru import logger
 
 
@@ -65,11 +66,12 @@ class Drone:
         self.point = point
         self.orientation = orientation
         self.body = Body(self.point, self.orientation)
+        self.trajectory = np.array([])
 
     def attach_body(self, body):
         self.body = body
 
-    def goto(self, point: None = None | list | np.ndarray, orientation: None = None | list | np.ndarray):
+    def goto(self, point: list | np.ndarray | None = None, orientation: list | np.ndarray | None = None):
         """
         Функция перемещает дрон в заданное положение. Если задана точка назначения и вектор ориентации, то дрон поменяет
         то и то. Задана только ориентация или только точка, то изменится только нужный параметр. Если не задано ничего,
@@ -83,9 +85,16 @@ class Drone:
         if point is None and orientation is None:
             return
         # Здесь будет код для перемещения дрона, например через piosdk
+        # if self.trajectory.shape[0] == 0:
+        segment = Line_segment(point1=self.point, point2=point)
+        segment.color = 'orange'
+        self.trajectory = np.hstack((self.trajectory, segment))
+        if orientation is not None:
+            self.orientation = orientation
+        if orientation is None:
+            self.point = point
 
-        self.orientation = orientation
-        self.point = point
+        self.apply_position()
 
     def apply_position(self) -> None:
         """
