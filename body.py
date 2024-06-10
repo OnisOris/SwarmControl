@@ -5,18 +5,13 @@ class Body:
     def __init__(self, point: np.ndarray = np.array([0, 0, 0]),
                  orientation: np.ndarray = np.array([[1, 0, 0],
                                                     [0, 1, 0],
-                                                    [0, 0, 1]]),
-                 k=1):
+                                                    [0, 0, 1]])):
         self.name_body = None
         # Текущая координата тела
         self.point = point
         # Матрица ориентации
         self.orientation = orientation
-        self.length = 1
-        self.k = k
-        self.lim_x = np.array([-1, 1])*k
-        self.lim_y = np.array([-1, 1])*k
-        self.lim_z = np.array([-1, 1])*k
+        self.length = 0.5
         self.text = False
 
 
