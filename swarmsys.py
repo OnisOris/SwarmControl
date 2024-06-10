@@ -39,12 +39,12 @@ def rot_v(axis: list | np.ndarray, vector: list | np.ndarray, angle: float | int
     :return:
     """
     x, y, z = axis
-    rotate = np.array([[cos(angle) + (1 - cos(angle)) * x**2, (1-cos(angle) * x * y) -
-                        sin(angle)*z, (1 - cos(angle)) * x * z + sin(angle) * y],
-                       [(1 - cos(angle)) * y * x + sin(angle)*z, cos(angle) +
-                        (1 - cos(angle)) * y**2, (1 - cos(angle)) * y * z - sin(angle) * x],
+    rotate = np.array([[cos(angle) + (1 - cos(angle)) * x ** 2, (1 - cos(angle) * x * y) -
+                        sin(angle) * z, (1 - cos(angle)) * x * z + sin(angle) * y],
+                       [(1 - cos(angle)) * y * x + sin(angle) * z, cos(angle) +
+                        (1 - cos(angle)) * y ** 2, (1 - cos(angle)) * y * z - sin(angle) * x],
                        [(1 - cos(angle)) * z * x - sin(angle) * y, (1 - cos(angle)) * z * y +
-                        sin(angle) * x, cos(angle) + (1 - cos(angle)) * z**2]])
+                        sin(angle) * x, cos(angle) + (1 - cos(angle)) * z ** 2]])
     rot_vector = rotate.dot(vector)
     return rot_vector
 
@@ -69,6 +69,12 @@ class Drone:
         self.body = Body(self.point, self.orientation)
         self.trajectory = np.array([])
         self.drone = drone
+        self.apply = True
+        self.begin_point = self.point
+        # характеристики дрона
+        self.hight = 0.12
+        self.lenth = 0.29
+        self.width = 0.29
 
     def attach_body(self, body):
         self.body = body
@@ -88,14 +94,19 @@ class Drone:
             return
         # Здесь будет код для перемещения дрона, например через piosdk
         # if self.trajectory.shape[0] == 0:
-        segment = Line_segment(point1=self.point, point2=point)
+        if orientation is not None:
+            # Здесь будет функция смены отображенгия ориентации, как self.trajectory_write()
+            self.orientation = orientation
+        if point is None:
+            self.trajectory_write(self.point, point)
+            self.point = point
+        if self.apply:
+            self.apply_position()
+
+    def trajectory_write(self, previous_point, current_point):
+        segment = Line_segment(point1=previous_point, point2=current_point)
         segment.color = 'orange'
         self.trajectory = np.hstack((self.trajectory, segment))
-        if orientation is not None:
-            self.orientation = orientation
-        if orientation is None:
-            self.point = point
-        self.apply_position()
 
     def apply_position(self) -> None:
         """
@@ -103,8 +114,7 @@ class Drone:
         :return: None
         """
         # Здесь будет код для перемещения дрона, например через piosdk
-        self.body.orientation = self.orientation
-        self.body.point = self.point
+        # TODO: сделать отправку ориентации. В данный момент отправляется только координата
         if self.drone is not None:
             self.drone.go_to_local_point(self.point[0], self.point[1], self.point[2], yaw=0)
             # while not self.drone.point_reached():
@@ -116,10 +126,10 @@ class Drone:
         self.rot_z(alpha)
         self.rot_x(beta)
         self.rot_z(gamma)
-        if apply:
+        if self.apply & apply:
             self.apply_position()
 
-    def rot_x(self, angle: float | int, rot_point: np.ndarray = np.array([1, 0, 0]), apply: bool = True) -> None:
+    def rot_x(self, angle: float | int, rot_point: np.ndarray = np.array([1, 0, 0]), apply: bool = False) -> None:
         """
         Данная функция вращает дрон вокруг выбранного центра rot_point по оси y.
         :param angle: Угол поворота в радианах
@@ -130,12 +140,9 @@ class Drone:
         :type apply: bool
         :return: None
         """
-        self.orientation = rot_x(self.orientation, -angle)
-        self.point = rot_x(self.point - rot_point, angle) + rot_point
-        if apply:
-            self.apply_position()
+        self.trans(rot_x, angle=angle, rot_point=rot_point, apply=apply)
 
-    def rot_y(self, angle: float | int, rot_point: np.ndarray = np.array([1, 0, 0]), apply: bool = True) -> None:
+    def rot_y(self, angle: float | int, rot_point: np.ndarray = np.array([1, 0, 0]), apply: bool = False) -> None:
         """
         Данная функция вращает дрон вокруг выбранного центра rot_point по оси y.
         :param angle: Угол поворота в радианах
@@ -146,12 +153,9 @@ class Drone:
         :type apply: bool
         :return: None
         """
-        self.orientation = rot_y(self.orientation, -angle)
-        self.point = rot_y(self.point - rot_point, angle) + rot_point
-        if apply:
-            self.apply_position()
+        self.trans(rot_y, angle=angle, rot_point=rot_point, apply=apply)
 
-    def rot_z(self, angle: float | int, rot_point: np.ndarray = np.array([1, 0, 0]), apply: bool = True) -> None:
+    def rot_z(self, angle: float | int, rot_point: np.ndarray = np.array([1, 0, 0]), apply: bool = False) -> None:
         """
         Данная функция вращает дрон вокруг выбранного центра rot_point по оси z.
         :param angle: Угол поворота в радианах
@@ -162,9 +166,25 @@ class Drone:
         :type apply: bool
         :return: None
         """
-        self.orientation = rot_z(self.orientation, -angle)
-        self.point = rot_z(self.point - rot_point, angle) + rot_point
-        if apply:
+        self.trans(rot_z, angle=angle, rot_point=rot_point, apply=apply)
+    def trans(self, func, angle: float | int, rot_point: np.ndarray = np.array([1, 0, 0]), apply: bool = False) -> None:
+        """
+        Данная функция преобразует координаты и ориентацию дрона с помощью функции преобразования func
+        :param angle: Угол поворота в радианах
+        :type angle: float | int
+        :param rot_point: Коодинаты оси поворота
+        :type rot_point: list[float, int] | np.ndarray[float, int]
+        :param apply: Отправлять ли данные в дроны?
+        :type apply: bool
+        :return: None
+        """
+        self.orientation = func(self.orientation, -angle)
+        new_point = func(self.point - rot_point, angle) + rot_point
+        self.trajectory_write(self.point, new_point)
+        self.point = new_point
+        self.body.orientation = self.orientation
+        self.body.point = self.point
+        if self.apply & apply:
             self.apply_position()
 
     def self_show(self):
@@ -175,10 +195,18 @@ class Drone:
     def show(self, ax):
         self.body.show(ax)
 
+    def show_trajectory(self, ax):
+        from ThreeDTool.points import Points
+        points = Points(self.trajectory, method="plot")
+        points.show(ax)
+
     def arm(self) -> None:
-        self.drone.arm()
+        if self.apply:
+            self.drone.arm()
+
     def takeoff(self) -> None:
-        self.drone.takeoff()
+        if self.apply:
+            self.drone.takeoff()
 
 
 class Darray:
@@ -195,6 +223,8 @@ class Darray:
         self.xyz = xyz  # Координата массива дронов во внешней системе координат
         self.orientation = orientation  # Вектор ориентации системы коорднат массива дронов
         self.length = 5
+        self.apply = False
+        self.trajectory = np.array([])
         # self.body = Body(self.point, self.orientation)
 
     def __getitem__(self, item):
@@ -233,8 +263,9 @@ class Darray:
         Данная функция перемещает дроны в установленный скелет массива
         :return:
         """
-        for drone in self.drones:
-            drone.goto(drone.point)
+        if self.apply:
+            for drone in self.drones:
+                drone.goto(drone.point)
 
     def unfasten(self) -> None:
         """
@@ -249,16 +280,17 @@ class Darray:
         :return: None
         """
         # Здесь будет код для перемещения дрона, например через piosdk
-        pass
+        for drone in self.drones:
+            drone.apply_position()
 
     def euler_rotate(self, alpha: float, beta: float, gamma: float, apply: bool = False) -> None:
         self.rot_z(alpha)
         self.rot_x(beta)
         self.rot_z(gamma)
-        if apply:
+        if self.apply & apply:
             self.apply_position()
 
-    def rot_x(self, angle: float | int, rot_point: np.ndarray = np.array([0, 0, 0]), apply: bool = True) -> None:
+    def rot_x(self, angle: float | int, rot_point: np.ndarray = np.array([0, 0, 0]), apply: bool = False) -> None:
         """
         Данная функция вращает массив дронов вокруг выбранного центра rot_point по оси x.
         :param angle: Угол поворота в радианах
@@ -269,14 +301,11 @@ class Darray:
         :type apply: bool
         :return: None
         """
-        self.orientation = rot_x(self.orientation, -angle)
         for drone in self.drones:
             drone.rot_x(angle, rot_point, apply)
-        self.xyz = rot_x(self.xyz - rot_point, angle) + rot_point
-        if apply:
-            self.apply_position()
+        self.trans(rot_x, angle=angle, rot_point=rot_point, apply=apply)
 
-    def rot_y(self, angle: float | int, rot_point: np.ndarray = np.array([0, 0, 0]), apply: bool = True) -> None:
+    def rot_y(self, angle: float | int, rot_point: np.ndarray = np.array([0, 0, 0]), apply: bool = False) -> None:
         """
         Данная функция вращает массив дронов вокруг выбранного центра rot_point по оси y.
         :param angle: Угол поворота в радианах
@@ -287,14 +316,11 @@ class Darray:
         :type apply: bool
         :return: None
         """
-        self.orientation = rot_y(self.orientation, -angle)
         for drone in self.drones:
             drone.rot_y(angle, rot_point, apply)
-        self.xyz = rot_y(self.xyz - rot_point, angle) + rot_point
-        if apply:
-            self.apply_position()
+        self.trans(rot_y, angle=angle, rot_point=rot_point, apply=apply)
 
-    def rot_z(self, angle: float | int, rot_point: np.ndarray = np.array([0, 0, 0]), apply: bool = True) -> None:
+    def rot_z(self, angle: float | int, rot_point: np.ndarray = np.array([0, 0, 0]), apply: bool = False) -> None:
         """
         Данная функция вращает массив дронов вокруг выбранного центра rot_point по оси z.
         :param angle: Угол поворота в радианах
@@ -305,12 +331,35 @@ class Darray:
         :type apply: bool
         :return: None
         """
-        self.orientation = rot_z(self.orientation, -angle)
         for drone in self.drones:
             drone.rot_z(angle, rot_point, apply)
-        self.xyz = rot_z(self.xyz - rot_point, angle) + rot_point
-        if apply:
+        self.trans(rot_z, angle=angle, rot_point=rot_point, apply=apply)
+
+
+    def trans(self, func, angle: float | int, rot_point: np.ndarray = np.array([1, 0, 0]), apply: bool = False) -> None:
+        """
+        Данная функция преобразует координаты и ориентацию массива дронов с помощью функции преобразования func. При
+        этом положение дронов данная функция не меняет.
+        :param func: Функция преобразования для ориентации и точки массива
+        :param angle: Угол поворота в радианах
+        :type angle: float | int
+        :param rot_point: Коодинаты оси поворота
+        :type rot_point: list[float, int] | np.ndarray[float, int]
+        :param apply: Отправлять ли данные в дроны?
+        :type apply: bool
+        :return: None
+        """
+        self.orientation = func(self.orientation, -angle)
+        new_xyz = func(self.xyz - rot_point, angle) + rot_point
+        self.trajectory_write(self.xyz, new_xyz)
+        self.xyz = new_xyz
+        if self.apply & apply:
             self.apply_position()
+
+    def trajectory_write(self, previous_xyz, current_xyz):
+        segment = Line_segment(point1=previous_xyz, point2=current_xyz)
+        segment.color = 'red'
+        self.trajectory = np.hstack((self.trajectory, segment))
 
     def show(self, ax):
         for drone in self.drones:
@@ -332,10 +381,18 @@ class Darray:
             drone.show(dp.ax)
         dp.show()
 
-    def arm(self):
+    def show_trajectory(self, ax):
         for drone in self.drones:
-            drone.arm()
+            for segment in drone.trajectory:
+                segment.show(ax)
+            drone.show(ax)
+
+    def arm(self):
+        if self.apply:
+            for drone in self.drones:
+                drone.arm()
 
     def takeoff(self) -> None:
-        for drone in self.drones:
-            drone.takeoff()
+        if self.apply:
+            for drone in self.drones:
+                drone.takeoff()
