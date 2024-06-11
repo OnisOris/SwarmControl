@@ -27,9 +27,9 @@ for i in range(3):
     arr.rot_z(np.pi/4, rot_point=rot_point, apply=True)
     time.sleep(3)
 
-dp = Dspl([], qt=True)
-lim_1 = -1
-lim_2 = 2
-dp.limits(x=[lim_1, lim_2], y=[lim_1, lim_2], z=[lim_1, lim_2])
-arr.show_trajectory(dp.ax)
-dp.show()
+# dp = Dspl([], qt=True)
+# lim_1 = -1
+# lim_2 = 2
+# dp.limits(x=[lim_1, lim_2], y=[lim_1, lim_2], z=[lim_1, lim_2])
+# arr.show_trajectory(dp.ax)
+# dp.show()
