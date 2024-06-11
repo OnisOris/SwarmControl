@@ -54,7 +54,7 @@ class Drone:
     Класс единицы дрона в трехмерном пространстве.
     """
 
-    def __init__(self, point: np.ndarray = np.array([0, 0, 0]),
+    def __init__(self, point: list | np.ndarray = np.array([0, 0, 0]),
                  orientation: np.ndarray = np.array([[1, 0, 0],
                                                      [0, 1, 0],
                                                      [0, 0, 1]]),
@@ -64,7 +64,10 @@ class Drone:
         :param point:
         :param orientation:
         """
-        self.point = point
+        if isinstance(point, list):
+            self.point = np.array(point)
+        else:
+            self.point = point
         self.orientation = orientation
         self.body = Body(self.point, self.orientation)
         self.trajectory = np.array([])
