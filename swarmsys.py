@@ -22,6 +22,46 @@ def rot_y(vector: list | np.ndarray, angle: float | int) -> np.ndarray:
     return rot_vector
 
 
+def opposite_vectors(v1, v2) -> bool:
+    """
+    Функция проверяет, противоположны ли векторы
+    :param v1: Вектор 1
+    :type v1: np.ndarray
+    :param v2: Вектор 2
+    :type v2: np.ndarray
+    :return: bool
+    """
+    v1 = np.array(v1) / np.linalg.norm(v1)
+    v2 = np.array(v2) / np.linalg.norm(v2)
+    if np.sum(v1 + v2) == 0.0:
+        return True
+    else:
+        return False
+
+
+def angle_from_vectors_2d(v1: list | np.ndarray, v2: list | np.ndarray) -> np.ndarray:
+    from math import acos
+    """
+    Функция возвращает угол между двумя векторами
+    :param v1: Вектор 1
+    :type v1: np.ndarray
+    :param v2: Вектор 2
+    :type v2: np.ndarray
+    :return: np.ndarray
+    """
+    cos = (v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2]) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+    matrix = np.array([v1[0:2], v2[0:2]])
+    det = np.linalg.det(matrix)
+    if det == 0:
+        if opposite_vectors(v1, v2):
+            alpha = np.pi
+        else:
+            alpha = 0
+    else:
+        alpha = det / abs(det) * acos(cos)
+    return alpha
+
+
 def rot_z(vector: list | np.ndarray, angle: float | int) -> np.ndarray:
     rotate_z = np.array([[cos(angle), -sin(angle), 0],
                          [sin(angle), cos(angle), 0],
@@ -73,7 +113,7 @@ class Drone:
         self.hight = 0.12
         self.lenth = 0.29
         self.width = 0.29
-        self.rad = np.linalg.norm([self.lenth/2, self.width/2])
+        self.rad = np.linalg.norm([self.lenth / 2, self.width / 2])
 
     def attach_body(self, body):
         self.body = body
@@ -124,8 +164,13 @@ class Drone:
         """
         # Здесь будет код для перемещения дрона, например через piosdk
         # TODO: сделать отправку ориентации. В данный момент отправляется только координата
+        # from ThreeDTool import angle_from_vectors_2d
         if self.drone is not None:
-            self.drone.go_to_local_point(self.body.point[0], self.body.point[1], self.body.point[2], yaw=0)
+            self.drone.go_to_local_point(self.body.point[0],
+                                         self.body.point[1],
+                                         self.body.point[2],
+                                         yaw=angle_from_vectors_2d([1, 0, 0],
+                                                                   self.body.orientation[0]))
 
     def euler_rotate(self, alpha: float, beta: float, gamma: float, apply: bool = False) -> None:
         self.rot_z(alpha)
@@ -271,7 +316,7 @@ class Darray:
         """
         if self.apply:
             for drone in self.drones:
-                drone.goto(drone.point)
+                drone.goto(drone.body.point, drone.body.orientation)
 
     def unfasten(self) -> None:
         """
