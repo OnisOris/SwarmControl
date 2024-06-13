@@ -1,4 +1,6 @@
 import ThreeDTool
+from ThreeDTool import Polygon
+
 from swarmsys import *
 
 drone1 = Drone(point=[2.5, 2.5, 0])
@@ -9,3 +11,8 @@ plan_point = [8, 11, 0]
 darr = Darray(drones=[drone1, drone2])
 
 darr.self_show()
+
+pol = Polygon([[drone1.point[0] + drone1.lenth]])
+
+
+

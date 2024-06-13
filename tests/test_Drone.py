@@ -18,3 +18,8 @@ lim_2 = 2
 dp.limits(x=[lim_1, lim_2], y=[lim_1, lim_2], z=[lim_1, lim_2])
 
 dp.show()
+
+pol = Polygon(drones[0].get_border())
+
+dp2 = Dspl([pol], qt=True)
+dp2.show()
