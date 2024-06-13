@@ -2,7 +2,7 @@ import numpy as np
 from numpy import cos, sin, pi
 from body import Body
 from dspl import Dspl
-from ThreeDTool import Line_segment
+from ThreeDTool import Line_segment, Polygon
 from loguru import logger
 
 
@@ -64,23 +64,30 @@ class Drone:
         :param point:
         :param orientation:
         """
-        if isinstance(point, list):
-            self.point = np.array(point)
-        else:
-            self.point = point
-        self.orientation = orientation
-        self.body = Body(self.point, self.orientation)
+        self.body = Body(point, orientation)
         self.trajectory = np.array([])
         self.drone = drone
         self.apply = True
-        self.begin_point = self.point
+        self.begin_point = point
         # характеристики дрона
         self.hight = 0.12
         self.lenth = 0.29
         self.width = 0.29
+        self.rad = np.linalg.norm([self.lenth/2, self.width/2])
 
     def attach_body(self, body):
         self.body = body
+
+    def get_border(self) -> np.ndarray:
+        """
+        Функция возвращает границу дрона в виде матрицы 4x3, которая является вершинами прямоугольника, вида
+        [[x1, y1, z1], ......., [x4, y4, z4]]
+        :return: np.ndarray
+        """
+        return np.array([[self.body.point[0] - self.rad / 2, self.body.point[1] + self.rad / 2, self.body.point[2]],
+                         [self.body.point[0] + self.rad / 2, self.body.point[1] + self.rad / 2, self.body.point[2]],
+                         [self.body.point[0] + self.rad / 2, self.body.point[1] - self.rad / 2, self.body.point[2]],
+                         [self.body.point[0] - self.rad / 2, self.body.point[1] - self.rad / 2, self.body.point[2]]])
 
     def goto(self, point: list | np.ndarray | None = None, orientation: list | np.ndarray | None = None):
         """
@@ -96,13 +103,12 @@ class Drone:
         if point is None and orientation is None:
             return
         # Здесь будет код для перемещения дрона, например через piosdk
-        # if self.trajectory.shape[0] == 0:
         if orientation is not None:
-            # Здесь будет функция смены отображенгия ориентации, как self.trajectory_write()
-            self.orientation = orientation
-        if point is None:
-            self.trajectory_write(self.point, point)
-            self.point = point
+            # Здесь будет функция смены отображения ориентации, как self.trajectory_write()
+            self.body.orientation = orientation
+        if point is not None:
+            self.trajectory_write(self.body.point, point)
+            self.body.point = point
         if self.apply:
             self.apply_position()
 
@@ -119,11 +125,7 @@ class Drone:
         # Здесь будет код для перемещения дрона, например через piosdk
         # TODO: сделать отправку ориентации. В данный момент отправляется только координата
         if self.drone is not None:
-            self.drone.go_to_local_point(self.point[0], self.point[1], self.point[2], yaw=0)
-            # while not self.drone.point_reached():
-            #     a = self.drone.get_local_position_lps()
-            #     if a is not None:
-            #         print(a)
+            self.drone.go_to_local_point(self.body.point[0], self.body.point[1], self.body.point[2], yaw=0)
 
     def euler_rotate(self, alpha: float, beta: float, gamma: float, apply: bool = False) -> None:
         self.rot_z(alpha)
@@ -170,6 +172,7 @@ class Drone:
         :return: None
         """
         self.trans(rot_z, angle=angle, rot_point=rot_point, apply=apply)
+
     def trans(self, func, angle: float | int, rot_point: np.ndarray = np.array([1, 0, 0]), apply: bool = False) -> None:
         """
         Данная функция преобразует координаты и ориентацию дрона с помощью функции преобразования func
@@ -181,12 +184,10 @@ class Drone:
         :type apply: bool
         :return: None
         """
-        self.orientation = func(self.orientation, -angle)
-        new_point = func(self.point - rot_point, angle) + rot_point
-        self.trajectory_write(self.point, new_point)
-        self.point = new_point
-        self.body.orientation = self.orientation
-        self.body.point = self.point
+        self.body.orientation = func(self.body.orientation, -angle)
+        new_point = func(self.body.point - rot_point, angle) + rot_point
+        self.trajectory_write(self.body.point, new_point)
+        self.body.point = new_point
         if self.apply & apply:
             self.apply_position()
 
@@ -223,28 +224,31 @@ class Darray:
                                                      [0, 1, 0],
                                                      [0, 0, 1]])):
         self.drones = drones
-        self.xyz = xyz  # Координата массива дронов во внешней системе координат
-        self.orientation = orientation  # Вектор ориентации системы коорднат массива дронов
         self.length = 5
         self.apply = False
         self.trajectory = np.array([])
-        # self.body = Body(self.point, self.orientation)
+        self.body = Body(xyz, orientation)
 
     def __getitem__(self, item):
         return self.drones[item]
 
     def create_square_array(self, sizes: list | np.ndarray = np.array([[-10, 10], [-10, 10]]),
-                            number_of_drones: int = 4, center_point: np.ndarray = np.array([0, 0, 0]),
+                            number_of_drones: int = 4,
+                            center_point: np.ndarray = np.array([0, 0, 0]),
                             pio_drones=None) -> None:
         """
         Функция генерирует квадрат из дронов
         :param sizes: Размер массива по x и по y
         :type sizes: list or np.ndarray
+        :param number_of_drones: Количество дронов
+        :type number_of_drones: int
         :param center_point: Центральная точка формирования массива дронов
         :type center_point: np.ndarray
+        :param pio_drones: Входящие объекты дронов
+        :type pio_drones: list | np.ndarray
         :return:
         """
-        self.xyz = center_point
+        self.body.point = center_point
         x = np.linspace(sizes[0, 0], sizes[0, 1], number_of_drones) + center_point[0]
         y = np.linspace(sizes[1, 0], sizes[1, 1], number_of_drones) + center_point[1]
         z = np.ones(number_of_drones ** 2)
@@ -252,10 +256,9 @@ class Darray:
         x_m = x_m.reshape(-1)
         y_m = y_m.reshape(-1)
         points = np.vstack((x_m, y_m, z)).T
-        # logger.debug(points)
         drones = np.array([])
         for point in points:
-            drones = np.hstack((drones, Drone(point, self.orientation)))
+            drones = np.hstack((drones, Drone(point, self.body.orientation)))
         self.drones = drones
         if pio_drones is not None:
             for i, drone in enumerate(self.drones):
@@ -282,7 +285,6 @@ class Darray:
         Данная функция отправляет дронам изменившеюся ориентацию и позицию в orientation и в point
         :return: None
         """
-        # Здесь будет код для перемещения дрона, например через piosdk
         for drone in self.drones:
             drone.apply_position()
 
@@ -338,7 +340,6 @@ class Darray:
             drone.rot_z(angle, rot_point, apply)
         self.trans(rot_z, angle=angle, rot_point=rot_point, apply=apply)
 
-
     def trans(self, func, angle: float | int, rot_point: np.ndarray = np.array([1, 0, 0]), apply: bool = False) -> None:
         """
         Данная функция преобразует координаты и ориентацию массива дронов с помощью функции преобразования func. При
@@ -352,11 +353,43 @@ class Darray:
         :type apply: bool
         :return: None
         """
-        self.orientation = func(self.orientation, -angle)
-        new_xyz = func(self.xyz - rot_point, angle) + rot_point
-        self.trajectory_write(self.xyz, new_xyz)
-        self.xyz = new_xyz
+        self.body.orientation = func(self.body.orientation, -angle)
+        new_xyz = func(self.body.point - rot_point, angle) + rot_point
+        self.trajectory_write(self.body.point, new_xyz)
+        self.body.point = new_xyz
         if self.apply & apply:
+            self.apply_position()
+
+    def goto(self, point: list | np.ndarray | None = None, orientation: list | np.ndarray | None = None):
+        """
+        Функция перемещает Массив дронов в заданное положение. Если задана точка назначения и вектор ориентации, то
+        массив дронов поменяет полную ориентацию в пространстве. Если задана только ориентация или только точка, то
+        изменится только нужный параметр. Если не задано ничего, то ничего не поменяется.
+        :param orientation:
+        :type orientation: list or np.ndarray or None
+        :param point: Точка назначения для дрона
+        :type point: list[float, int] or None
+        :return: None
+        """
+
+        if point is None and orientation is None:
+            return
+        if isinstance(point, list):
+            point = np.array(point)
+        if isinstance(orientation, list):
+            orientation = np.array(orientation)
+        for drone in self.drones:
+            # Данная формула появилась благодаря векторным операциям
+            drone.body.point = point - self.body.point + drone.body.point
+
+        if orientation is not None:
+            # Здесь будет функция смены отображения ориентации, как self.trajectory_write()
+            self.body.orientation = orientation
+        if point is not None:
+            self.trajectory_write(self.body.point, point)
+            self.body.point = point
+
+        if self.apply:
             self.apply_position()
 
     def trajectory_write(self, previous_xyz, current_xyz):
@@ -368,14 +401,14 @@ class Darray:
         for drone in self.drones:
             drone.show(ax)
 
-        ax.quiver(self.xyz[0], self.xyz[1], self.xyz[2],
-                  self.orientation[0, 0], self.orientation[0, 1], self.orientation[0, 2],
+        ax.quiver(self.body.point[0], self.body.point[1], self.body.point[2],
+                  self.body.orientation[0, 0], self.body.orientation[0, 1], self.body.orientation[0, 2],
                   length=self.length, color='r')
-        ax.quiver(self.xyz[0], self.xyz[1], self.xyz[2],
-                  self.orientation[1, 0], self.orientation[1, 1], self.orientation[1, 2],
+        ax.quiver(self.body.point[0], self.body.point[1], self.body.point[2],
+                  self.body.orientation[1, 0], self.body.orientation[1, 1], self.body.orientation[1, 2],
                   length=self.length, color='g')
-        ax.quiver(self.xyz[0], self.xyz[1], self.xyz[2],
-                  self.orientation[2, 0], self.orientation[2, 1], self.orientation[2, 2],
+        ax.quiver(self.body.point[0], self.body.point[1], self.body.point[2],
+                  self.body.orientation[2, 0], self.body.orientation[2, 1], self.body.orientation[2, 2],
                   length=self.length, color='b')
 
     def self_show(self):
