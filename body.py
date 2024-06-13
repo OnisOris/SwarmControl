@@ -6,11 +6,25 @@ class Body:
                  orientation: np.ndarray = np.array([[1, 0, 0],
                                                     [0, 1, 0],
                                                     [0, 0, 1]])):
+        """
+        :param point: Текущая координата тела
+        :param orientation: Текущая ориентация тела. Она задается с помощью правой тройкой векторов
+        """
+        if not np.allclose(np.cross(orientation[0], orientation[1]), orientation[2], 1e-8):
+            raise ValueError("Задана не правая единичная тройка векторов")
+
+        if isinstance(point, list):
+            self.point = np.array(point)
+        else:
+            self.point = point
+
+        if isinstance(orientation, list):
+            self.orientation = np.array(orientation)
+        else:
+            self.orientation = orientation
         self.name_body = None
         # Текущая координата тела
-        self.point = point
         # Матрица ориентации
-        self.orientation = orientation
         self.length = 0.5
         self.text = False
 
