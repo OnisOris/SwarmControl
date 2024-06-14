@@ -1,9 +1,11 @@
+from __future__ import annotations
 import ThreeDTool
 import numpy as np
 from numpy import cos, sin, pi, ndarray
 from body import Body
 from dspl import Dspl
 from ThreeDTool import Line_segment, Polygon
+from pioneer_sdk import Pioneer
 
 
 def rot_x(vector: list | np.ndarray, angle: float | int) -> np.ndarray:
@@ -117,7 +119,8 @@ class Drone:
                  orientation: np.ndarray = np.array([[1, 0, 0],
                                                      [0, 1, 0],
                                                      [0, 0, 1]]),
-                 drone=None):
+                 drone: Pioneer = None,
+                 apply: bool = True):
         """
         В данной реализации дрон имеет координату point и вектор ориентации в глобальной системе координат
         :param point:
@@ -127,7 +130,7 @@ class Drone:
         self.body = Body(point, orientation)
         self.trajectory = np.array([])
         self.drone = drone
-        self.apply = True
+        self.apply = apply
         self.begin_point = point
         # характеристики дрона
         self.height = 0.12
@@ -155,11 +158,15 @@ class Drone:
                          [self.body.point[0] + self.rad / 2, self.body.point[1] - self.rad / 2, self.body.point[2]],
                          [self.body.point[0] - self.rad / 2, self.body.point[1] - self.rad / 2, self.body.point[2]]])
 
-    def goto(self, point: list | np.ndarray | None = None, orientation: list | np.ndarray | None = None) -> None:
+    def goto(self, point: list | np.ndarray | None = None,
+             orientation: list | np.ndarray | None = None,
+             apply: bool = False) -> None:
         """
         Функция перемещает дрон в заданное положение. Если задана точка назначения и вектор ориентации, тогда
         изменится все. Задана только ориентация или только точка, то изменится только нужный параметр.
         Если не задано ничего, то ничего не поменяется.
+        :param apply: :param apply: Отправлять ли данные в дроны?
+        :type apply: bool
         :param orientation: Ориентация, представляющая собой матрицу 3x3 из единичных векторов-строк. Первый вектор
          задает x, второй y, третий z.
         :type orientation: list or np.ndarray or None
@@ -176,7 +183,7 @@ class Drone:
         if point is not None:
             self.trajectory_write(self.body.point, point)
             self.body.point = point
-        if self.apply:
+        if self.apply & apply:
             self.apply_position()
 
     def trajectory_write(self, previous_point: list | np.ndarray, current_point: list | np.ndarray) -> None:
@@ -202,7 +209,7 @@ class Drone:
                                          self.body.point[1],
                                          self.body.point[2],
                                          yaw=ThreeDTool.angle_from_vectors(np.array([1, 0, 0]),
-                                                                           self.body.orientation[0]))
+                                                                           self.body.orientation[0]) * 180/np.pi)
 
     def euler_rotate(self, alpha: float, beta: float, gamma: float, apply: bool = False) -> None:
         """
