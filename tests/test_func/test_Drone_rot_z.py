@@ -3,6 +3,8 @@ from dspl import Dspl
 import numpy as np
 from ThreeDTool import Points
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('WebAgg')
 
 dr = Drone()
 rot_point = np.array([10, 0, 0])
@@ -10,7 +12,7 @@ zero_point = np.array([0, 0, 0])
 p = Points([rot_point, zero_point], text=True)
 dr.rot_z(pi/4, rot_point)
 
-dp = Dspl([dr] + [p], qt=True)
+dp = Dspl([dr] + [p])
 
 lim_1 = -10
 lim_2 = 10

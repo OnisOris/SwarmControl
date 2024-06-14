@@ -9,8 +9,6 @@ traj = loxodrome(R=10, step=1, point_n=[0, 0, 10])
 p = Points([zero_point], text=True)
 p2 = Points(traj.tolist(), method='plot')
 
-
-
 dr.goto([3, 0, 0])
 dr.goto([3, 5, 0])
 dr.goto([3, 0, 4])
