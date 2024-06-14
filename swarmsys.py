@@ -224,7 +224,6 @@ class Drone:
         :return: None
         """
         import math
-        loguru.logger.debug(math.atan2(self.body.orientation[0][1], self.body.orientation[0][0]) * 180 / np.pi)
         if self.drone is not None:
             self.drone.go_to_local_point(self.body.point[0],
                                          self.body.point[1],
@@ -388,6 +387,9 @@ class Darray:
 
     def __getitem__(self, item):
         return self.drones[item]
+
+    def __iter__(self):
+        return iter(self.drones)
 
     def create_square_array(self, sizes: list | np.ndarray = np.array([[-10, 10], [-10, 10]]),
                             number_of_drones: int = 4,
