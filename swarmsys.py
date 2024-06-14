@@ -1,5 +1,6 @@
 from __future__ import annotations
 import ThreeDTool
+import loguru
 import numpy as np
 from numpy import cos, sin, pi, ndarray
 from body import Body
@@ -68,6 +69,24 @@ def rot_z(vector: list | np.ndarray, angle: float | int) -> np.ndarray:
                          [0, 0, 1]])
     rot_vector = vector.dot(rotate_z)
     return rot_vector
+
+
+def angle_from_vectors(vector1: ndarray, vector2: ndarray) -> ndarray:
+    """
+    Функция возвращает угол между двумя векторами в радианах, заданными в n_мерном пространстве
+    :param vector1: Первый n-мерный вектор-строка
+    :type vector1: ndarray
+    :param vector2: Второй n-мерный вектор-строка
+    :type vector2: ndarray
+    :return: ndarray
+    """
+    from math import sqrt, atan2
+    from ThreeDTool import null_vector
+    if null_vector(vector1) or null_vector(vector2):
+        raise Exception("Вектора не не могут быть равны нулю")
+    cos = np.dot(vector1, vector2) / (np.linalg.norm(vector1) * np.linalg.norm(vector2))
+    angle = np.arctan2(-sqrt(1 - cos ** 2), cos)
+    return angle
 
 
 def rot_v(axis: list | np.ndarray, vector: list | np.ndarray, angle: float | int) -> np.ndarray:
@@ -204,12 +223,15 @@ class Drone:
         Данная функция отправляет дронам изменившеюся ориентацию и позицию в orientation и в point
         :return: None
         """
+        import math
+        loguru.logger.debug(math.atan2(self.body.orientation[0][1], self.body.orientation[0][0]) * 180 / np.pi)
         if self.drone is not None:
             self.drone.go_to_local_point(self.body.point[0],
                                          self.body.point[1],
                                          self.body.point[2],
-                                         yaw=ThreeDTool.angle_from_vectors(np.array([1, 0, 0]),
-                                                                           self.body.orientation[0]) * 180/np.pi)
+                                         # перед yaw стоит минус, так как дроны вращаются не в ту сторону в pio_sdk
+                                         yaw=-math.atan2(self.body.orientation[0][1],
+                                                         self.body.orientation[0][0]) * 180 / np.pi)
 
     def euler_rotate(self, alpha: float, beta: float, gamma: float, apply: bool = False) -> None:
         """
@@ -258,7 +280,7 @@ class Drone:
         """
         self.trans(rot_y, angle=angle, rot_point=rot_point, apply=apply)
 
-    def rot_z(self, angle: float | int, rot_point: np.ndarray = np.array([1, 0, 0]), apply: bool = False) -> None:
+    def rot_z(self, angle: float | int, rot_point: np.ndarray = np.array([0, 0, 0]), apply: bool = False) -> None:
         """
         Данная функция вращает дрон вокруг выбранного центра rot_point по оси z. Положительным вращением считается
         по часовой стрелке при направлении оси к нам.
@@ -284,7 +306,7 @@ class Drone:
         :type apply: bool
         :return: None
         """
-        self.body.orientation = func(self.body.orientation, -angle)
+        self.body.orientation = func(self.body.orientation, angle)
         new_point = func(self.body.point - rot_point, angle) + rot_point
         self.trajectory_write(self.body.point, new_point)
         self.body.point = new_point
@@ -312,9 +334,8 @@ class Drone:
         Функция отображает траектории дрона на трехмерном графике, принимая внешний ax от matplotlib
         :return: None
         """
-        from ThreeDTool.points import Points
-        points = Points(self.trajectory, method="plot")
-        points.show(ax)
+        for traj in self.trajectory:
+            traj.show(ax)
 
     def arm(self) -> None:
         """
