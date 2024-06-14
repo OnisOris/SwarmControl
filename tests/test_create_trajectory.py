@@ -12,7 +12,9 @@ darr = Darray(drones=[drone1, drone2])
 
 darr.self_show()
 
-pol = Polygon([[drone1.point[0] + drone1.lenth]])
-
+pol = Polygon(drone1.get_border())
+pol2 = Polygon(drone2.get_border())
+dp = Dspl([pol, pol2])
+dp.show()
 
 
