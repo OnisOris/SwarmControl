@@ -1,3 +1,4 @@
+import loguru
 from icecream import icecream
 from numpy import pi
 from swarmsys import *
@@ -12,3 +13,6 @@ arr.create_square_array()
 arr.rot_z(-pi, rot_point, apply=True)
 dp = Dspl([arr] + [p], qt=True)
 dp.show()
+
+for drone in arr:
+    loguru.logger.debug(drone.body)
