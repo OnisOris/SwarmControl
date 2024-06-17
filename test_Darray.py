@@ -43,7 +43,7 @@ class TestDarray:
                                                        [0, 1, 0],
                                                        [0, 0, 1]]))
         darr.create_square_array(center_point=np.array([0, 0, 0]))
-        rand_drone = darr[random.randint(0, np.shape(darr.drones)[0])]
+        rand_drone = darr[random.randint(0, np.shape(darr.drones)[0] - 1)]
         # Найдем вектор смещения дрона относительно центра массива по векторному вычитанию
         vector_s = rand_drone.body.point - darr.body.point
         angle = np.pi / 4
@@ -65,7 +65,7 @@ class TestDarray:
                                                        [0, 1, 0],
                                                        [0, 0, 1]]))
         darr.create_square_array(center_point=np.array([0, 0, 0]))
-        rand_drone = darr[random.randint(0, np.shape(darr.drones)[0])]
+        rand_drone = darr[random.randint(0, np.shape(darr.drones)[0] - 1)]
         # Найдем вектор смещения дрона относительно центра массива по векторному вычитанию
         vector_s = rand_drone.body.point - darr.body.point
         angle = np.pi / 4
@@ -87,7 +87,7 @@ class TestDarray:
                                                        [0, 1, 0],
                                                        [0, 0, 1]]))
         darr.create_square_array(center_point=np.array([0, 0, 0]))
-        rand_drone = darr[random.randint(0, np.shape(darr.drones)[0])]
+        rand_drone = darr[random.randint(0, np.shape(darr.drones)[0] - 1)]
         # Найдем вектор смещения дрона относительно центра массива по векторному вычитанию
         vector_s = rand_drone.body.point - darr.body.point
         angle = np.pi / 4
