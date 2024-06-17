@@ -27,3 +27,5 @@ dp = Dspl([darr] + [p] + [p2] + darr.trajectory.tolist(), qt=True)
 dp.limits(x=[-5, 5], y=[-5, 5], z=[-5, 5])
 dp.ax.title.set_text('Перемещение дронов по траектории локсодромы')
 dp.show()
+from loguru import logger
+logger.debug(darr.body.point)
