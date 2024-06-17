@@ -1,17 +1,19 @@
 from swarmsys import *
 from ThreeDTool import Points
 from pioneer_sdk import Pioneer
-# from swarmsys import Darray
 import matplotlib
+import time
 matplotlib.use('WebAgg')
+
 rot_point = np.array([0, 0, 0])
 zero_point = np.array([0, 0, 0])
 p = Points([rot_point, zero_point], text=True)
 
 pioners = []
+ports = [8000, 8001, 8002, 8003]
 
-for i in range(4):
-    pioners.append(Pioneer(ip="127.0.0.1", mavlink_port=8000+i))
+for port in ports:
+    pioners.append(Pioneer(ip="127.0.0.1", mavlink_port=port))
 
 
 arr = Darray(apply=True)
@@ -22,7 +24,6 @@ arr.arm()
 arr.takeoff()
 
 arr.fasten()
-import time
 time.sleep(7)
 for i in range(5):
     arr.rot_z(np.pi/10*i, rot_point=rot_point, apply=True)
