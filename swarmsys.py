@@ -1,8 +1,11 @@
 from __future__ import annotations
+
+from typing import Any
+
 import ThreeDTool
 import loguru
 import numpy as np
-from numpy import cos, sin, pi, ndarray
+from numpy import cos, sin, pi, ndarray, dtype
 from body import Body
 from dspl import Dspl
 from ThreeDTool import Line_segment, Polygon
@@ -156,6 +159,7 @@ class Drone:
         self.length = 0.29
         self.width = 0.29
         self.rad = np.linalg.norm([self.length / 2, self.width / 2])
+        self.active = False  # Флаг, показывающий, что дрон в активном состоянии, т.е меняет свое положение
 
     def attach_body(self, body: Body) -> None:
         """
@@ -176,6 +180,14 @@ class Drone:
                          [self.body.point[0] + self.rad / 2, self.body.point[1] + self.rad / 2, self.body.point[2]],
                          [self.body.point[0] + self.rad / 2, self.body.point[1] - self.rad / 2, self.body.point[2]],
                          [self.body.point[0] - self.rad / 2, self.body.point[1] - self.rad / 2, self.body.point[2]]])
+
+    def get_polygon(self) -> Polygon:
+        """
+        Функция возвращает границу дрона в виде объекта класса Polygon. Граница является вершинами прямоугольника, вида
+        [[x1, y1, z1], ......., [x4, y4, z4]]
+        :return: Polygon
+        """
+        return Polygon(self.get_border())
 
     def goto(self, point: list | np.ndarray | None = None,
              orientation: list | np.ndarray | None = None,
@@ -620,3 +632,14 @@ class Darray:
         if self.apply:
             for drone in self.drones:
                 drone.takeoff()
+
+    def get_polygon(self) -> ndarray[Any, dtype[Any]]:
+        """
+        Функция возвращает границы каждого дрона в виде объекта многоугольника Polygon
+        :return:
+        """
+        polygons = np.array([])
+        for drone in self.drones:
+            polygons = np.hstack((polygons, drone.get_polygon()))
+        return polygons
+
