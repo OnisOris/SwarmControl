@@ -16,9 +16,12 @@ class Map:
             self.borders = np.hstack([self.borders, bord])
 
 
-class Sheduler:
-    """
-    Данный класс принимает в себя ссылку на карту с объектами классов: Drone, Darray.
-    """
-    def __init__(self, map_object: Map):
-        pass
+# class Sheduler:
+#     """
+#     Данный класс принимает в себя ссылку на карту с объектами классов: Drone, Darray.
+#     """
+#     def __init__(self, map_object: Map):
+#         self.map_object = map_object
+#
+#     def calculate_path(self, current_pos, target_position):
+
