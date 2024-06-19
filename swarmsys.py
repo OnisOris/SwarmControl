@@ -1,15 +1,13 @@
 from __future__ import annotations
-
 from typing import Any
-
-import ThreeDTool
-import loguru
 import numpy as np
-from numpy import cos, sin, pi, ndarray, dtype
+import ThreeDTool as tdt
+from ThreeDTool import Line_segment, Polygon
+from numpy import cos, sin, ndarray, dtype
+from pioneer_sdk import Pioneer
 from body import Body
 from dspl import Dspl
-from ThreeDTool import Line_segment, Polygon
-from pioneer_sdk import Pioneer
+from scheduler import Map
 
 
 def rot_x(vector: list | np.ndarray, angle: float | int) -> np.ndarray:
@@ -83,7 +81,7 @@ def angle_from_vectors(vector1: ndarray, vector2: ndarray) -> ndarray:
     :type vector2: ndarray
     :return: ndarray
     """
-    from math import sqrt, atan2
+    from math import sqrt
     from ThreeDTool import null_vector
     if null_vector(vector1) or null_vector(vector2):
         raise Exception("Вектора не не могут быть равны нулю")
@@ -364,6 +362,38 @@ class Drone:
         if self.apply:
             self.drone.takeoff()
 
+    def check_collision(self, drone: Drone, map_object) -> bool:
+        line_s = Line_segment(point1=self.body.point, point2=drone.body.point)
+        for border in map_object.borders:
+            for segment in border.get_line_segments():
+                p = tdt.point_from_segment_segment_intersection(line_s, segment)
+                if p is not None:
+                    return True
+        return False
+
+
+    def calculate_path(self, target_point, map_object):
+        """
+
+        :param target_point:
+        :param map_object:
+        :return:
+        """
+        line_s = Line_segment(point1=self.body.point, point2=target_point)
+        point = []
+        for border in map_object.borders:
+            for segment in border.get_line_segments():
+                p = tdt.point_from_segment_segment_intersection(line_s, segment)
+                if p is not None:
+                    point.append(p)
+        import loguru
+        loguru.logger.debug(point)
+        loguru.logger.debug(np.allclose(point, None))
+
+    def info(self):
+        return f"x: {self.body.point[0]}, y: {self.body.point[1]}, z: {self.body.point[2]}"
+
+
 
 class Darray:
     """
@@ -642,4 +672,11 @@ class Darray:
         for drone in self.drones:
             polygons = np.hstack((polygons, drone.get_polygon()))
         return polygons
+
+    def info(self):
+        out_info = ""
+        for drone in self.drones:
+            out_info += drone.info() + "\n"
+        return out_info
+
 
