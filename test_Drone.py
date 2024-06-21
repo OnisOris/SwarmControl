@@ -56,3 +56,20 @@ class TestDrone:
         assert np.allclose(drone.body.point,
                            (point - rot_point).dot(rotate_z) + rot_point,
                            1e-8)
+
+    def test_Drone_rot_v(self):
+        rot_point = np.array([40, 40, 0])
+        point = np.array([0, 0, 0])
+        axis = np.array([0, 0, 10000])
+        drone = Drone(point=point, orientation=np.array([[1, 0, 0],
+                                                         [0, 1, 0],
+                                                         [0, 0, 1]]))
+        angle = np.pi / 4
+        drone.rot_v(angle, rot_point=rot_point, axis=axis, apply=True)
+        rotate_z = np.array([[cos(angle), -sin(angle), 0],
+                             [sin(angle), cos(angle), 0],
+                             [0, 0, 1]])
+
+        assert np.allclose(drone.body.point,
+                           (point - rot_point).dot(rotate_z) + rot_point,
+                           1e-8)
