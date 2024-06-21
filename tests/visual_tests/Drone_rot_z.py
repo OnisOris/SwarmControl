@@ -10,7 +10,7 @@ dr = Drone()
 rot_point = np.array([10, 0, 0])
 zero_point = np.array([0, 0, 0])
 p = Points([rot_point, zero_point], text=True)
-dr.rot_z(pi/4, rot_point)
+dr.rot_v(np.pi / 4, rot_point)
 
 dp = Dspl([dr] + [p])
 
