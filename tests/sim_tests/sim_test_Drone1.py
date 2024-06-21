@@ -32,7 +32,7 @@ while not n:
         n = np.allclose(np.array(k), np.array([1, -2, 1]), 1e-1)
 
 for i in range(8):
-    dr.rot_z(np.pi / 4, apply=True)
+    dr.rot_v(np.pi / 4, apply=True)
     n = False
     while not n:
         k = pioner.get_local_position_lps()
