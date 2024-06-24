@@ -260,7 +260,7 @@ class Drone:
                                          self.body.point[1],
                                          self.body.point[2],
                                          # перед yaw стоит минус, так как дроны вращаются не в ту сторону в pio_sdk
-                                         yaw=-math.atan2(self.body.orientation[0][1],
+                                         yaw=math.atan2(self.body.orientation[0][1],
                                                          self.body.orientation[0][0]) * 180 / np.pi)
 
     def euler_rotate(self, alpha: float, beta: float, gamma: float, apply: bool = False) -> None:
@@ -600,7 +600,7 @@ class Darray:
             drone.rot_y(angle, rot_point, apply)
         self.trans(rot_y, angle=angle, rot_point=rot_point, apply=apply)
 
-    def rot_z(self, angle: float | int, rot_point: np.ndarray = None, apply: bool = False) -> None:
+    def rot_z(self, angle: float | int, rot_point: np.ndarray or list = None, apply: bool = False) -> None:
         """
         Данная функция вращает массив дронов вокруг выбранного центра rot_point по оси z. Положительным вращением
          считается по часовой стрелке при направлении оси к нам.
@@ -614,6 +614,8 @@ class Darray:
         """
         if rot_point is None:
             rot_point = self.body.point
+        elif isinstance(rot_point, list):
+            rot_point = np.array(rot_point)
         for drone in self.drones:
             drone.rot_z(angle, rot_point, apply=apply)
         self.trans(rot_z, angle=angle, rot_point=rot_point, apply=apply)
