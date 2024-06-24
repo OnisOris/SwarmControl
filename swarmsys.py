@@ -7,9 +7,15 @@ from numpy import cos, sin, ndarray, dtype
 from pioneer_sdk import Pioneer
 from body import Body
 from dspl import Dspl
-from scheduler import Map
 
-
+def set_barycenter(array: ndarray | list) -> ndarray:
+    """
+    Вычисляет барицентр фигуры
+    :return: None
+    """
+    if isinstance(array, list):
+        array = np.array(array)
+    return array.mean(axis=0)
 def rot_x(vector: list | np.ndarray, angle: float | int) -> np.ndarray:
     """
     Функция вращает входные вектора вокруг оси x, заданной векторами-столбцами. Положительным вращением считается
@@ -114,6 +120,8 @@ def rot_v(vector: list | np.ndarray, angle: float | int, axis: list | np.ndarray
     ])
     rot_vector = np.dot(vector, rotate)
     return rot_vector
+
+
 def normalization(vector: list | ndarray, length: int | float = 1) -> ndarray:
     """
     Функция возвращает нормированный вектор заданной длины
@@ -170,6 +178,7 @@ class Drone:
         self.width = 0.29
         self.rad = np.linalg.norm([self.length / 2, self.width / 2])
         self.active = False  # Флаг, показывающий, что дрон в активном состоянии, т.е меняет свое положение
+        self.t = []
 
     def attach_body(self, body: Body) -> None:
         """
@@ -388,16 +397,20 @@ class Drone:
         Функция отправляет команду на включение двигателей на дрон
         :return: None
         """
+        import threading
         if self.apply:
-            self.drone.arm()
+            self.t.append(threading.Thread(target=self.drone.arm, args=()))
+            self.t[-1].start()
 
     def takeoff(self) -> None:
         """
         Функция отправляет команду на взлет дрона
         :return: None
         """
+        import threading
         if self.apply:
-            self.drone.takeoff()
+            self.t.append(threading.Thread(target=self.drone.takeoff, args=()))
+            self.t[-1].start()
 
     def check_collision(self, drone: Drone, map_object) -> bool:
         line_s = Line_segment(point1=self.body.point, point2=drone.body.point)
@@ -422,9 +435,6 @@ class Drone:
                 p = tdt.point_from_segment_segment_intersection(line_s, segment)
                 if p is not None:
                     point.append(p)
-        import loguru
-        loguru.logger.debug(point)
-        loguru.logger.debug(np.allclose(point, None))
 
     def info(self):
         return f"x: {self.body.point[0]}, y: {self.body.point[1]}, z: {self.body.point[2]}"
@@ -456,7 +466,10 @@ class Darray:
         :type axis_length: int | None
 
         """
-        self.drones = drones
+        if drones is None:
+            self.drones = []
+        else:
+            self.drones = drones
         self.apply = apply
         self.trajectory = np.array([])
         self.body = Body(xyz, orientation)
@@ -500,6 +513,30 @@ class Darray:
             for i, drone in enumerate(self.drones):
                 drone.drone = pio_drones[i]
 
+    def create_local_array(self, pio_drones=None) -> None:
+        """
+        Функция генерирует массив из дронов по их начальным координатам
+        :param pio_drones: Входящие объекты дронов
+        :type pio_drones: list | np.ndarray
+        :return: None
+        """
+        if pio_drones is None:
+            raise Exception("Дроны должны быть поданы в данную функцию")
+        points = np.array([[0, 0, 0]])
+        drones = np.array([])
+        for pioner in pio_drones:
+            while True:
+                point = pioner.get_local_position_lps()
+                if point is not None:
+                    y, x, _ = point
+                    point = [x, y, 1]
+                    break
+            points = np.vstack([points, point])
+            drones = np.hstack((drones, Drone(point, self.body.orientation, drone=pioner)))
+        points = points[1:]
+        self.drones = drones
+        self.body.point = set_barycenter(points)
+
     def fasten(self) -> None:
         """
         Данная функция перемещает дроны в установленный скелет массива
@@ -507,7 +544,7 @@ class Darray:
         """
         if self.apply:
             for drone in self.drones:
-                drone.goto(drone.body.point, drone.body.orientation)
+                drone.goto(drone.body.point, drone.body.orientation, apply=True)
 
     def unfasten(self) -> None:
         """
@@ -563,7 +600,7 @@ class Darray:
             drone.rot_y(angle, rot_point, apply)
         self.trans(rot_y, angle=angle, rot_point=rot_point, apply=apply)
 
-    def rot_z(self, angle: float | int, rot_point: np.ndarray = np.array([0, 0, 0]), apply: bool = False) -> None:
+    def rot_z(self, angle: float | int, rot_point: np.ndarray = None, apply: bool = False) -> None:
         """
         Данная функция вращает массив дронов вокруг выбранного центра rot_point по оси z. Положительным вращением
          считается по часовой стрелке при направлении оси к нам.
@@ -575,9 +612,12 @@ class Darray:
         :type apply: bool
         :return: None
         """
+        if rot_point is None:
+            rot_point = self.body.point
         for drone in self.drones:
-            drone.rot_v(angle, rot_point, apply=apply)
+            drone.rot_z(angle, rot_point, apply=apply)
         self.trans(rot_z, angle=angle, rot_point=rot_point, apply=apply)
+
     def rot_v(self, angle: float | int,
               rot_point: np.ndarray = np.array([0, 0, 0]),
               axis: list | np.ndarray = np.array([0, 0, 1]),
