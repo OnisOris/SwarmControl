@@ -1,6 +1,6 @@
 numpy~=1.26.4
-ThreeDTool @ https://github.com/OnisOris/ThreeDTool
-ThreeDTool~=0.0.2
-icecream~=2.1.3
+ThreeDTool
 matplotlib~=3.9.0
 loguru~=0.7.2
+pioneer_sdk
+tornado
