@@ -53,10 +53,7 @@ class Body:
         if self.text:
             if self.name_body != None:
                 ax.text(self.point[0], self.point[1], self.point[2],
-                        f"{self.name_body}: \n {self.point[0], 
-                        self.point[1], self.point[2]}", color='blue')
+                        f"{self.name_body}: \n {self.point[0], self.point[1], self.point[2]}", color='blue')
             else:
                 ax.text(self.point[0], self.point[1], self.point[2],
-                    f"{np.round(self.point[0], 3), 
-                    np.round(self.point[1], 3),
-                    np.round(self.point[2], 3)}", color='blue')
+                    f"{np.round(self.point[0], 3), np.round(self.point[1], 3), np.round(self.point[2], 3)}", color='blue')
