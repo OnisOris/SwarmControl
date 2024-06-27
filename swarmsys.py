@@ -6,7 +6,7 @@ from typing import Any
 import loguru
 import numpy as np
 import ThreeDTool as tdt
-from ThreeDTool import Line_segment, Polygon, Line
+from ThreeDTool import Line_segment, Polygon, Line, Curve
 from numpy import cos, sin, ndarray, dtype
 from pioneer_sdk import Pioneer
 from body import Body
@@ -519,6 +519,7 @@ class Darray:
         self.trajectory = np.array([])
         self.body = Body(xyz, orientation)
         self.body.length = axis_length
+        self.occupancy = False
 
     def __getitem__(self, item):
         return self.drones[item]
@@ -573,7 +574,7 @@ class Darray:
             while True:
                 point = pioner.get_local_position_lps()
                 if point is not None:
-                    x, y, _ = point
+                    y, x, _ = point
                     point = [x, y, 1]
                     break
             points = np.vstack([points, point])
@@ -747,17 +748,21 @@ class Darray:
         if self.apply:
             self.apply_position()
 
-    def go_traj(self, traj: list | ndarray) -> None:
+    def go_traj(self, traj: Curve) -> None:
+        import threading as th
         for point in traj:
             self.goto(point)
-            self.wait_for_point()
+            t = th.Thread(target=self.wait_for_point)
+            t.start()
+            while self.occupancy:
+                pass
+
 
     def wait_for_point(self):
-        # import threading as th
         import time
-        flag = True
+        self.occupancy = True
         eq = np.zeros((np.shape(self.drones)))
-        while flag:
+        while self.occupancy:
             array = self.drones
             # eq = np.zeros((np.shape(self.drones)))
             for i, drone in enumerate(self.drones):
@@ -767,8 +772,11 @@ class Darray:
             loguru.logger.debug(self.drones[0].drone.point_reached())
             loguru.logger.debug(eq)
             if np.all(eq == True):
+                self.occupancy = False
                 break
             time.sleep(0.5)
+
+        # th.current_thread()
 
     def trajectory_write(self, previous_xyz: list | ndarray, current_xyz: list | ndarray) -> None:
         """
@@ -863,3 +871,11 @@ class Map:
         for obj in self.objects:
             bord = obj.get_polygon()
             self.borders = np.hstack([self.borders, bord])
+
+    @property
+    def borders(self):
+        return self.borders
+
+    @borders.setter
+    def borders(self, borders):
+        self.borders = borders
