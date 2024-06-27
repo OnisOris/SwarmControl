@@ -1,12 +1,17 @@
 from __future__ import annotations
+
+import time
 from typing import Any
+
+import loguru
 import numpy as np
 import ThreeDTool as tdt
-from ThreeDTool import Line_segment, Polygon
+from ThreeDTool import Line_segment, Polygon, Line
 from numpy import cos, sin, ndarray, dtype
 from pioneer_sdk import Pioneer
 from body import Body
 from dspl import Dspl
+
 
 def set_barycenter(array: ndarray | list) -> ndarray:
     """
@@ -16,6 +21,8 @@ def set_barycenter(array: ndarray | list) -> ndarray:
     if isinstance(array, list):
         array = np.array(array)
     return array.mean(axis=0)
+
+
 def rot_x(vector: list | np.ndarray, angle: float | int) -> np.ndarray:
     """
     Функция вращает входные вектора вокруг оси x, заданной векторами-столбцами. Положительным вращением считается
@@ -179,6 +186,7 @@ class Drone:
         self.rad = np.linalg.norm([self.length / 2, self.width / 2])
         self.active = False  # Флаг, показывающий, что дрон в активном состоянии, т.е меняет свое положение
         self.t = []
+        self.occupancy = False
 
     def attach_body(self, body: Body) -> None:
         """
@@ -227,6 +235,7 @@ class Drone:
         if point is None and orientation is None:
             return
         # Здесь будет код для перемещения дрона, например через piosdk
+        old_orinetation = self.body.orientation
         if orientation is not None:
             # Здесь будет функция смены отображения ориентации, как self.trajectory_write()
             self.body.orientation = orientation
@@ -234,7 +243,7 @@ class Drone:
             self.trajectory_write(self.body.point, point)
             self.body.point = point
         if self.apply & apply:
-            self.apply_position()
+            self.apply_position(old_orinetation)
 
     def trajectory_write(self, previous_point: list | np.ndarray, current_point: list | np.ndarray) -> None:
         """
@@ -249,19 +258,26 @@ class Drone:
         segment.color = 'orange'
         self.trajectory = np.hstack((self.trajectory, segment))
 
-    def apply_position(self) -> None:
+    def apply_position(self, old_orientation, rad: bool = False, angle=0) -> None:
         """
         Данная функция отправляет дронам изменившеюся ориентацию и позицию в orientation и в point
         :return: None
         """
         import math
         if self.drone is not None:
+            if rad:
+                yaw = math.atan2(self.body.orientation[0][1],
+                                 self.body.orientation[0][0])
+            else:
+                # yaw = math.atan2(self.body.orientation[0][1],
+                #                   self.body.orientation[0][0]) * 180 / np.pi
+                yaw = angle * 180 / np.pi
+            # yaw = angle * 180 / np.pi
             self.drone.go_to_local_point(self.body.point[0],
                                          self.body.point[1],
                                          self.body.point[2],
                                          # перед yaw стоит минус, так как дроны вращаются не в ту сторону в pio_sdk
-                                         yaw=math.atan2(self.body.orientation[0][1],
-                                                         self.body.orientation[0][0]) * 180 / np.pi)
+                                         yaw=0)
 
     def euler_rotate(self, alpha: float, beta: float, gamma: float, apply: bool = False) -> None:
         """
@@ -361,12 +377,13 @@ class Drone:
         :type apply: bool
         :return: None
         """
+        old_orientation = self.body.orientation
         self.body.orientation = func(self.body.orientation, angle)
         new_point = func(self.body.point - rot_point, angle) + rot_point
         self.trajectory_write(self.body.point, new_point)
         self.body.point = new_point
         if self.apply & apply:
-            self.apply_position()
+            self.apply_position(old_orientation, angle=angle)
 
     def self_show(self) -> None:
         """
@@ -428,16 +445,37 @@ class Drone:
         :param map_object:
         :return:
         """
-        line_s = Line_segment(point1=self.body.point, point2=target_point)
-        point = []
+        target_point[2] = map_object.z
+        line_s = Line_segment(point1=self.body.point, point2=target_point)  # + R/2
+        full_vec = line_s.coeffs().reshape(2, 3)
+        full_vec2 = tdt.rotation_full_vector_relative_point_axis(full_vec, np.pi / 2, full_vec[0], axis=[0, 0, 1])
+        # loguru.logger.debug(tdt.normalization(perp_line.coeffs()[3:6], self.rad))
+        first_point = self.body.point + tdt.normalization(full_vec2[1], self.rad)
+        second_point = self.body.point - tdt.normalization(full_vec2[1], self.rad)
+        rectangle = tdt.rectangle_from_three_points(first_point, second_point, target_point)
+
+        # point = []
+        borders = []
         for border in map_object.borders:
-            for segment in border.get_line_segments():
-                p = tdt.point_from_segment_segment_intersection(line_s, segment)
-                if p is not None:
-                    point.append(p)
+            p = rectangle.polygon_analyze(border)
+            if p is not None:
+                borders.append(border)
+                break
+        loguru.logger.debug(border)
 
     def info(self):
         return f"x: {self.body.point[0]}, y: {self.body.point[1]}, z: {self.body.point[2]}"
+
+    def wait_for_point(self, point: list | ndarray, accuracy: float = 1e-3):
+        import time
+        self.occupancy = True
+        loguru.logger.debug(f"point = {point}")
+        while self.occupancy:
+            k = self.drone.get_local_position_lps()
+            loguru.logger.debug(f"point = {point} k = {k}")
+            if isinstance(k, list):
+                self.occupancy = not np.allclose(np.array(k), self.body.point, accuracy)
+            time.sleep(0.5)
 
 
 class Darray:
@@ -528,7 +566,7 @@ class Darray:
             while True:
                 point = pioner.get_local_position_lps()
                 if point is not None:
-                    y, x, _ = point
+                    x, y, _ = point
                     point = [x, y, 1]
                     break
             points = np.vstack([points, point])
@@ -558,8 +596,9 @@ class Darray:
         Данная функция отправляет дронам изменившеюся ориентацию и позицию в orientation и в point
         :return: None
         """
+        old_orinetation = self.body.orientation
         for drone in self.drones:
-            drone.apply_position()
+            drone.apply_position(old_orinetation)
 
     def euler_rotate(self, alpha: float, beta: float, gamma: float, apply: bool = False) -> None:
         self.rot_z(alpha)
@@ -701,6 +740,29 @@ class Darray:
         if self.apply:
             self.apply_position()
 
+    def go_traj(self, traj: list | ndarray) -> None:
+        for point in traj:
+            self.goto(point)
+            self.wait_for_point()
+
+    def wait_for_point(self):
+        # import threading as th
+        import time
+        flag = True
+        eq = np.zeros((np.shape(self.drones)))
+        while flag:
+            array = self.drones
+            # eq = np.zeros((np.shape(self.drones)))
+            for i, drone in enumerate(self.drones):
+                if drone.drone.point_reached():
+                    eq[i] = True
+                    np.delete(array, i)
+            loguru.logger.debug(self.drones[0].drone.point_reached())
+            loguru.logger.debug(eq)
+            if np.all(eq == True):
+                break
+            time.sleep(0.5)
+
     def trajectory_write(self, previous_xyz: list | ndarray, current_xyz: list | ndarray) -> None:
         """
         Функция сохраняет траекторию движения массива дронов по точкам во внутренний массив с объектами класса
@@ -781,3 +843,16 @@ class Darray:
         for drone in self.drones:
             out_info += drone.info() + "\n"
         return out_info
+
+
+class Map:
+    def __init__(self, objects: list | np.ndarray, z: int | float = 1):
+        self.objects = objects
+        self.borders = np.array([])
+        self.grab_borders()
+        self.z = z
+
+    def grab_borders(self):
+        for obj in self.objects:
+            bord = obj.get_polygon()
+            self.borders = np.hstack([self.borders, bord])
