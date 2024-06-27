@@ -438,7 +438,7 @@ class Drone:
                     return True
         return False
 
-    def calculate_path(self, target_point, map_object):
+    def calculate_path(self, target_point, map_object: Map):
         """
 
         :param target_point:
@@ -453,15 +453,22 @@ class Drone:
         first_point = self.body.point + tdt.normalization(full_vec2[1], self.rad)
         second_point = self.body.point - tdt.normalization(full_vec2[1], self.rad)
         rectangle = tdt.rectangle_from_three_points(first_point, second_point, target_point)
-
-        # point = []
-        borders = []
+        polygons = np.array([])
+        points = np.array([[0, 0, 0]])
         for border in map_object.borders:
             p = rectangle.polygon_analyze(border)
             if p is not None:
-                borders.append(border)
-                break
-        loguru.logger.debug(border)
+                loguru.logger.debug((p))
+                polygons = np.hstack([polygons, border])
+                points = np.vstack([points, p])
+        if np.shape(points) != (3,):
+            points = points[1:]
+        points = np.vstack([points, target_point])
+        loguru.logger.debug(points)
+        points_int = tdt.Points(np.array(points), color='red', s=10)
+        dp = tdt.Dspl(np.hstack([points_int, polygons, line_s, rectangle]))
+        dp.show()
+        loguru.logger.debug(points_int)
 
     def info(self):
         return f"x: {self.body.point[0]}, y: {self.body.point[1]}, z: {self.body.point[2]}"
