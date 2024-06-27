@@ -7,7 +7,7 @@ matplotlib.use('WebAgg')
 pioners = []
 ports = np.array([])
 
-for i in range(28):
+for i in range(8):
     pioners = np.hstack([pioners, Pioneer(ip="127.0.0.1", mavlink_port=8000 + i)])
 
 darr = Darray(apply=True)
