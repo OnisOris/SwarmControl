@@ -4,6 +4,7 @@ import time
 from pioneer_sdk import Pioneer
 from swarmsys import *
 import matplotlib
+from loguru import logger
 matplotlib.use('WebAgg')
 
 
@@ -25,17 +26,20 @@ dr = Drone(drone=pioner, apply=True)
 dr.arm()
 dr.takeoff()
 time.sleep(7)
+logger.debug(dr.drone.get_local_position_lps())
 dr.goto([-1, 0, 1], apply=True)
-time.sleep(9)
-dr.rot_v(np.pi / 4, apply=True)
-time.sleep(9)
-dr.rot_v(np.pi / 4, rot_point=[0, 0, 0], apply=True)
-time.sleep(9)
-dr.rot_v(np.pi / 4, rot_point=[0, 0, 0], apply=True)
-dp = Dspl([dr])
-lim_1 = -10
-lim_2 = 10
-dp.limits(x=[lim_1, lim_2], y=[lim_1, lim_2], z=[lim_1, lim_2])
-dr.show_trajectory(dp.ax)
-dp.show()
+dr.wait_for_point([-1, 0, 1])
+logger.debug(dr.drone.get_local_position_lps())
+# time.sleep(9)
+# dr.rot_v(np.pi / 4, apply=True)
+# time.sleep(9)
+# dr.rot_v(np.pi / 4, rot_point=[0, 0, 0], apply=True)
+# time.sleep(9)
+# dr.rot_v(np.pi / 4, rot_point=[0, 0, 0], apply=True)
+# dp = Dspl([dr])
+# lim_1 = -10
+# lim_2 = 10
+# dp.limits(x=[lim_1, lim_2], y=[lim_1, lim_2], z=[lim_1, lim_2])
+# dr.show_trajectory(dp.ax)
+# dp.show()
 # pioner.go_to_local_points(0, 0, 1, 90)
