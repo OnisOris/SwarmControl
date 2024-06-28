@@ -449,26 +449,31 @@ class Drone:
         line_s = Line_segment(point1=self.body.point, point2=target_point)  # + R/2
         full_vec = line_s.coeffs().reshape(2, 3)
         full_vec2 = tdt.rotation_full_vector_relative_point_axis(full_vec, np.pi / 2, full_vec[0], axis=[0, 0, 1])
-        # loguru.logger.debug(tdt.normalization(perp_line.coeffs()[3:6], self.rad))
         first_point = self.body.point + tdt.normalization(full_vec2[1], self.rad)
         second_point = self.body.point - tdt.normalization(full_vec2[1], self.rad)
         rectangle = tdt.rectangle_from_three_points(first_point, second_point, target_point)
         polygons = np.array([])
         points = np.array([[0, 0, 0]])
-        for border in map_object.borders:
+        # Необходимо взять объекты без границы самого дрона
+        map_objects = map_object.get_border_without_border_drone(drone=self)
+
+        dp_debug = Dspl(map_objects)
+        dp_debug.show()
+        loguru.logger.debug(f"map ---> {map_objects}")
+        for border in map_objects:
             p = rectangle.polygon_analyze(border)
             if p is not None:
-                loguru.logger.debug((p))
+                # loguru.logger.debug((p))
                 polygons = np.hstack([polygons, border])
                 points = np.vstack([points, p])
         if np.shape(points) != (3,):
             points = points[1:]
         points = np.vstack([points, target_point])
-        loguru.logger.debug(points)
+        # loguru.logger.debug(points)
         points_int = tdt.Points(np.array(points), color='red', s=10)
         dp = tdt.Dspl(np.hstack([points_int, polygons, line_s, rectangle]))
         dp.show()
-        loguru.logger.debug(points_int)
+        # loguru.logger.debug(points_int)
 
     def info(self):
         return f"x: {self.body.point[0]}, y: {self.body.point[1]}, z: {self.body.point[2]}"
@@ -757,7 +762,6 @@ class Darray:
             while self.occupancy:
                 pass
 
-
     def wait_for_point(self):
         import time
         self.occupancy = True
@@ -862,7 +866,7 @@ class Darray:
 
 class Map:
     def __init__(self, objects: list | np.ndarray, z: int | float = 1):
-        self.objects = objects
+        self.objects = np.array(objects)
         self.borders = np.array([])
         self.grab_borders()
         self.z = z
@@ -872,10 +876,38 @@ class Map:
             bord = obj.get_polygon()
             self.borders = np.hstack([self.borders, bord])
 
-    @property
-    def borders(self):
-        return self.borders
+    def get_border_without_border_drone(self, drone: Drone) -> ndarray:
+        """
 
-    @borders.setter
-    def borders(self, borders):
-        self.borders = borders
+        :param drone:
+        :return:
+        """
+        borders = np.array([])
+        for obj in self.objects:
+            # loguru.logger.debug(obj.__class__)
+            # loguru.logger.debug(type(obj) == Darray)
+            if type(obj) == Drone:
+                # loguru.logger.debug("1")
+                if obj is not drone:
+                    # loguru.logger.debug("2")
+                    bord = obj.get_polygon()
+                    borders = np.hstack([borders, bord])
+            elif type(obj) == Darray:
+                # loguru.logger.debug("4")
+                for dr in obj:
+                    loguru.logger.debug(dr is obj)
+                    if dr is not drone:
+                        loguru.logger.debug("5")
+
+                        bord = dr.get_polygon()
+                        loguru.logger.debug(f"bord -> {bord}")
+                        borders = np.hstack([borders, bord])
+        # loguru.logger.debug(f"5 -> {borders}")
+        return borders
+    # @property
+    # def borders(self):
+    #     return self.borders
+
+    # @borders.setter
+    # def borders(self, borders):
+    #     self.borders = borders
