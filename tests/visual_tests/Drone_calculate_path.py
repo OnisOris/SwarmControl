@@ -1,7 +1,7 @@
 from swarmsys import *
 import numpy as np
 import ThreeDTool as tdt
-from scheduler import Map
+# from scheduler import Map
 from loguru import logger
 
 darr = Darray()
