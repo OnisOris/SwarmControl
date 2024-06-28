@@ -1,8 +1,9 @@
-from scheduler import *
-from swarmsys import *
+# from scheduler import *
+from swarmsys import Darray, Map
 from ThreeDTool import Dspl, Line_segment, Points
 import matplotlib
 matplotlib.use('WebAgg')
+import numpy as np
 
 darr = Darray()
 darr.create_square_array(sizes=np.array([[-1, 1],
