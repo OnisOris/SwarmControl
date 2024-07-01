@@ -243,7 +243,16 @@ class Drone:
             self.trajectory_write(self.body.point, point)
             self.body.point = point
         if self.apply & apply:
-            self.apply_position(old_orinetation)
+            self.apply_position()
+
+    def v(self, v: list | ndarray) -> None:
+        """
+        Функция задает вектор скорости дрону
+        :param v: Вектор скорости
+        :type v: list | np.ndarray
+        :return: None
+        """
+        self.drone.set_manual_speed(*v)
 
     def trajectory_write(self, previous_point: list | np.ndarray, current_point: list | np.ndarray) -> None:
         """
@@ -258,7 +267,9 @@ class Drone:
         segment.color = 'orange'
         self.trajectory = np.hstack((self.trajectory, segment))
 
-    def apply_position(self, old_orientation, rad: bool = False, angle=0) -> None:
+    def apply_position(self,
+                       rad: bool = False,
+                       angle=0) -> None:
         """
         Данная функция отправляет дронам изменившеюся ориентацию и позицию в orientation и в point
         :return: None
@@ -501,7 +512,8 @@ class Darray:
                                                      [0, 1, 0],
                                                      [0, 0, 1]]),
                  apply: bool = False,
-                 axis_length: int | None = 5):
+                 axis_length: int | None = 5,
+                 xy_inverse: bool = False):
         """
         :param drones: Массив с дронами
         :type drones: list[Drone] or np.ndarray[Drone]
@@ -525,6 +537,7 @@ class Darray:
         self.body = Body(xyz, orientation)
         self.body.length = axis_length
         self.occupancy = False
+        self.xy_inverse = xy_inverse
 
     def __getitem__(self, item):
         return self.drones[item]
@@ -579,8 +592,12 @@ class Darray:
             while True:
                 point = pioner.get_local_position_lps()
                 if point is not None:
-                    y, x, _ = point
-                    point = [x, y, 1]
+                    if self.xy_inverse:
+                        y, x, _ = point
+                        point = [x, y, 1]
+                    else:
+                        x, y, _ = point
+                        point = [x, y, 1]
                     break
             points = np.vstack([points, point])
             drones = np.hstack((drones, Drone(point, self.body.orientation, drone=pioner)))
