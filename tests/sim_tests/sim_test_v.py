@@ -27,7 +27,7 @@ dr.arm()
 dr.takeoff()
 time.sleep(10)
 # dr.v([1, 0, 0, 0.5])
-k=0
+k = 0
 while True:
     k += np.pi/9
     dr.v([sin(k), cos(k), 0, 0])
