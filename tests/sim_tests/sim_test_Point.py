@@ -1,3 +1,5 @@
+import math
+
 from point import Point
 import time
 import matplotlib
@@ -21,27 +23,32 @@ def limits(ax, x: list | np.ndarray = None,
 
 point = Point([0, 0, 0], speed=np.array([1, 0, 0]))
 
-t0, dt = time.time(), 0.2
+t0, delta = time.time(), 0.0001
+dt = delta
 old_time = time.time()
 plt.ion()
-
+points_arr = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]])
 while True:
     start = time.time()
-    time.sleep(0.2)
-    dt = time.time() - start
+    time.sleep(delta)
+
     phi = time.time() - old_time
-    A = 3
-    x_ = np.sin(phi)*A
-    y_ = np.cos(phi)*A
+    A = 0.5
+    x_ = np.sin(phi)*A*math.exp(phi/100)
+    y_ = np.cos(phi)*A*math.exp(phi/100)
     point.set_speed(np.array([x_, y_, 0]))
     point.move(dt)
     print(point.coords)
-    plt.xlim(-10, 10)
-    plt.ylim(-10, 10)
+    # points_arr = np.vstack([points_arr, point.coords[0]])
+
+    plt.xlim(-20, 20)
+    plt.ylim(-20, 20)
     plt.scatter(x=point.coords[0][0], y=point.coords[0][1])
+    # plt.plot(points_arr[-3:-1, 0], points_arr[-3:-1, 1])
     plt.draw()
     plt.pause(0.0001)
-    # plt.clf()
+    plt.clf()
+    dt = time.time() - start
 
 
 

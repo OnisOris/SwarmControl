@@ -7,7 +7,7 @@ class Point:
         if speed is None:
             self.speed = Vector(*[0 for i in range(len(coords))])
         else:
-            self.speed = speed
+            self.speed = np.array(speed)
         self.acc = Vector(*[0 for i in range(len(coords))])
         self.mass = mass
         self.__params__ = ["coords", "speed", "acc", "q"] + list(properties.keys())
