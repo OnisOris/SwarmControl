@@ -17,7 +17,7 @@ class Syscord:
         self.delta = 0.1
 
     def real_time_start_sim(self):
-        fig, ax = plt.subplots(figsize=(12, 7))
+        # fig, ax = plt.subplots(figsize=(12, 7))
         t0 = time.time()
         dt = self.delta
         plt.ion()
@@ -28,13 +28,19 @@ class Syscord:
             A = 0.5
             x_ = np.sin(phi) * A * math.exp(phi / 100)
             y_ = np.cos(phi) * A * math.exp(phi / 100)
+            xy_arr = []
+            # y_arr = []
+            p_xy = []
+            # p_y = []
             for obj in self.objects:
                 obj.set_speed(np.array([x_, y_, 0]))
                 obj.move(dt)
-                x = obj.coords[0][0]
-                y = obj.coords[0][1]
-                x_s = x + x_
-                y_s = y + y_
+                # x = obj.coords[0][0]
+                # y = obj.coords[0][1]
+                xy_arr.append(obj.coords[0][0])
+                xy_arr.append(obj.coords[0][1])
+                x_s = obj.coords[0][0] + x_*20
+                y_s = obj.coords[0][0] + y_*20
 
                 plt.quiver(x, y,
                           x_s, y_s,)
