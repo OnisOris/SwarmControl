@@ -276,13 +276,13 @@ class Drone:
         """
         import math
         if self.drone is not None:
-            if rad:
-                yaw = math.atan2(self.body.orientation[0][1],
-                                 self.body.orientation[0][0])
-            else:
-                # yaw = math.atan2(self.body.orientation[0][1],
-                #                   self.body.orientation[0][0]) * 180 / np.pi
-                yaw = angle * 180 / np.pi
+            # if rad:
+            #     yaw = math.atan2(self.body.orientation[0][1],
+            #                      self.body.orientation[0][0])
+            # else:
+            #     # yaw = math.atan2(self.body.orientation[0][1],
+            #     #                   self.body.orientation[0][0]) * 180 / np.pi
+            #     yaw = angle * 180 / np.pi
             # yaw = angle * 180 / np.pi
             self.drone.go_to_local_point(self.body.point[0],
                                          self.body.point[1],
