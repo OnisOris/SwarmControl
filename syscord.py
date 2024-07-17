@@ -35,8 +35,8 @@ class Syscord:
             for obj in self.objects:
                 obj.set_speed(np.array([x_, y_, 0]))
                 obj.move(dt)
-                # x = obj.coords[0][0]
-                # y = obj.coords[0][1]
+                x = obj.coords[0][0]
+                y = obj.coords[0][1]
                 xy_arr.append(obj.coords[0][0])
                 xy_arr.append(obj.coords[0][1])
                 x_s = obj.coords[0][0] + x_*20
