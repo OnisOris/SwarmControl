@@ -1,5 +1,7 @@
 from swarmsys import *
 from ThreeDTool import Points
+import matplotlib
+matplotlib.use('WebAgg')
 
 rot_point = np.array([40, 0, 0])
 zero_point = np.array([0, 0, 0])
