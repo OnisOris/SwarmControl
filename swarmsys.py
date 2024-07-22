@@ -276,14 +276,14 @@ class Drone:
         """
         import math
         if self.drone is not None:
-            if rad:
-                yaw = math.atan2(self.body.orientation[0][1],
-                                 self.body.orientation[0][0])
-            else:
-                # yaw = math.atan2(self.body.orientation[0][1],
-                #                   self.body.orientation[0][0]) * 180 / np.pi
-                yaw = angle * 180 / np.pi
-            # yaw = angle * 180 / np.pi
+            # if rad:
+            #     yaw = math.atan2(self.body.orientation[0][1],
+            #                      self.body.orientation[0][0])
+            # else:
+            #     # yaw = math.atan2(self.body.orientation[0][1],
+            #     #                   self.body.orientation[0][0]) * 180 / np.pi
+            #     yaw = angle * 180 / np.pi
+            # # yaw = angle * 180 / np.pi
             self.drone.go_to_local_point(self.body.point[0],
                                          self.body.point[1],
                                          self.body.point[2],
@@ -293,7 +293,7 @@ class Drone:
     def euler_rotate(self, alpha: float, beta: float, gamma: float, apply: bool = False) -> None:
         """
         Функция воспроизводит вращение Эйлера в последовательности z, x, z. Положительным вращением считается
-        по часовой стрелке при направлении оси к нам.
+        по часовой стрелке при направлении оси к наxм.
         :param alpha: Первый угол вращения по оси z, в радианах
         :type alpha: float
         :param beta: Второй угол вращения по оси x, в радианах
@@ -430,6 +430,16 @@ class Drone:
             self.t.append(threading.Thread(target=self.drone.arm, args=()))
             self.t[-1].start()
 
+    def disarm(self) -> None:
+        """
+        Функция отправляет команду на отключение двигателей на дрон
+        :return: None
+        """
+        import threading
+        if self.apply:
+            self.t.append(threading.Thread(target=self.drone.disarm, args=()))
+            self.t[-1].start()
+
     def takeoff(self) -> None:
         """
         Функция отправляет команду на взлет дрона
@@ -438,6 +448,16 @@ class Drone:
         import threading
         if self.apply:
             self.t.append(threading.Thread(target=self.drone.takeoff, args=()))
+            self.t[-1].start()
+
+    def land(self) -> None:
+        """
+        Функция отправляет команду на приземление дрона
+        :return: None
+        """
+        import threading
+        if self.apply:
+            self.t.append(threading.Thread(target=self.drone.land, args=()))
             self.t[-1].start()
 
     def check_collision(self, drone: Drone, map_object) -> bool:
@@ -472,7 +492,7 @@ class Drone:
         dp_debug.show()
         loguru.logger.debug(f"map ---> {map_objects}")
         for border in map_objects:
-            p = rectangle.polygon_analyze(border)
+            p = rectangle.point_analyze(border)
             if p is not None:
                 # loguru.logger.debug((p))
                 polygons = np.hstack([polygons, border])
@@ -485,6 +505,7 @@ class Drone:
         dp = tdt.Dspl(np.hstack([points_int, polygons, line_s, rectangle]))
         dp.show()
         # loguru.logger.debug(points_int)
+        # return route
 
     def info(self):
         return f"x: {self.body.point[0]}, y: {self.body.point[1]}, z: {self.body.point[2]}"
@@ -545,16 +566,16 @@ class Darray:
     def __iter__(self):
         return iter(self.drones)
 
-    def create_square_array(self, sizes: list | np.ndarray = np.array([[-10, 10], [-10, 10]]),
-                            number_of_drones: int = 4,
+    def create_square_array(self, defining_points: list | np.ndarray = np.array([[-10, -10], [10, 10]]),
+                            number_of_drones_in_row: int = 4,
                             center_point: np.ndarray = np.array([0, 0, 0]),
                             pio_drones=None) -> None:
         """
         Функция генерирует квадратный массив из дронов
-        :param sizes: Размер массива по x и по y
-        :type sizes: list or np.ndarray
-        :param number_of_drones: Количество дронов
-        :type number_of_drones: int
+        :param defining_points: Две точки, задающие прямоугольник
+        :type defining_points: list or np.ndarray
+        :param number_of_drones_in_row: Количество дронов
+        :type number_of_drones_in_row: int
         :param center_point: Центральная точка формирования массива дронов
         :type center_point: np.ndarray
         :param pio_drones: Входящие объекты дронов
@@ -562,9 +583,9 @@ class Darray:
         :return: None
         """
         self.body.point = center_point
-        x = np.linspace(sizes[0, 0], sizes[0, 1], number_of_drones) + center_point[0]
-        y = np.linspace(sizes[1, 0], sizes[1, 1], number_of_drones) + center_point[1]
-        z = np.ones(number_of_drones ** 2)
+        x = np.linspace(defining_points[0][0], defining_points[1][0], number_of_drones_in_row) + center_point[0]
+        y = np.linspace(defining_points[0][1], defining_points[1][1], number_of_drones_in_row) + center_point[1]
+        z = np.ones(number_of_drones_in_row ** 2)
         x_m, y_m = np.meshgrid(x, y)
         x_m = x_m.reshape(-1)
         y_m = y_m.reshape(-1)
@@ -855,6 +876,15 @@ class Darray:
             for drone in self.drones:
                 drone.arm()
 
+    def disarm(self) -> None:
+        """
+        Функция отправляет команду на включение двигателей на массив дронов
+        :return: None
+        """
+        if self.apply:
+            for drone in self.drones:
+                drone.disarm()
+
     def takeoff(self) -> None:
         """
         Функция отправляет команду на взлет всех дронов в массиве
@@ -863,6 +893,15 @@ class Darray:
         if self.apply:
             for drone in self.drones:
                 drone.takeoff()
+
+    def land(self) -> None:
+        """
+        Функция отправляет команду на взлет всех дронов в массиве
+        :return: None
+        """
+        if self.apply:
+            for drone in self.drones:
+                drone.land()
 
     def get_polygon(self) -> ndarray[Any, dtype[Any]]:
         """
