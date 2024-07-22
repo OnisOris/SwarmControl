@@ -565,16 +565,16 @@ class Darray:
     def __iter__(self):
         return iter(self.drones)
 
-    def create_square_array(self, sizes: list | np.ndarray = np.array([[-10, 10], [-10, 10]]),
-                            number_of_drones: int = 4,
+    def create_square_array(self, defining_points: list | np.ndarray = np.array([[-10, -10], [10, 10]]),
+                            number_of_drones_in_row: int = 4,
                             center_point: np.ndarray = np.array([0, 0, 0]),
                             pio_drones=None) -> None:
         """
         Функция генерирует квадратный массив из дронов
-        :param sizes: Размер массива по x и по y
-        :type sizes: list or np.ndarray
-        :param number_of_drones: Количество дронов
-        :type number_of_drones: int
+        :param defining_points: Две точки, задающие прямоугольник
+        :type defining_points: list or np.ndarray
+        :param number_of_drones_in_row: Количество дронов
+        :type number_of_drones_in_row: int
         :param center_point: Центральная точка формирования массива дронов
         :type center_point: np.ndarray
         :param pio_drones: Входящие объекты дронов
@@ -582,9 +582,9 @@ class Darray:
         :return: None
         """
         self.body.point = center_point
-        x = np.linspace(sizes[0, 0], sizes[0, 1], number_of_drones) + center_point[0]
-        y = np.linspace(sizes[1, 0], sizes[1, 1], number_of_drones) + center_point[1]
-        z = np.ones(number_of_drones ** 2)
+        x = np.linspace(defining_points[0][0], defining_points[1][0], number_of_drones_in_row) + center_point[0]
+        y = np.linspace(defining_points[0][1], defining_points[1][1], number_of_drones_in_row) + center_point[1]
+        z = np.ones(number_of_drones_in_row ** 2)
         x_m, y_m = np.meshgrid(x, y)
         x_m = x_m.reshape(-1)
         y_m = y_m.reshape(-1)
