@@ -430,6 +430,16 @@ class Drone:
             self.t.append(threading.Thread(target=self.drone.arm, args=()))
             self.t[-1].start()
 
+    def disarm(self) -> None:
+        """
+        Функция отправляет команду на отключение двигателей на дрон
+        :return: None
+        """
+        import threading
+        if self.apply:
+            self.t.append(threading.Thread(target=self.drone.disarm, args=()))
+            self.t[-1].start()
+
     def takeoff(self) -> None:
         """
         Функция отправляет команду на взлет дрона
@@ -438,6 +448,16 @@ class Drone:
         import threading
         if self.apply:
             self.t.append(threading.Thread(target=self.drone.takeoff, args=()))
+            self.t[-1].start()
+
+    def land(self) -> None:
+        """
+        Функция отправляет команду на приземление дрона
+        :return: None
+        """
+        import threading
+        if self.apply:
+            self.t.append(threading.Thread(target=self.drone.land, args=()))
             self.t[-1].start()
 
     def check_collision(self, drone: Drone, map_object) -> bool:
