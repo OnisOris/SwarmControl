@@ -3,31 +3,35 @@ from ThreeDTool import Points
 from pioneer_sdk import Pioneer
 import matplotlib
 import time
+from config import CONFIG
 
 matplotlib.use('WebAgg')
 
-# pioner = Pioneer(ip="10.1.100.103", mavlink_port=5656)
-    # IpPort(ip="10.1.100.103", port=5656)
-
-points = np.array([[-4, 4, 1], [0, 4, 1], [4, 4, 1],
-                   [-4, 0, 1], [0, 0, 1], [4, 0, 1],
-                   [0, -4, 1]])
-# pioner.arm()
-# # time.sleep(2)
-# pioner.takeoff()
-# ip="10.1.100.103", port=5656
-# (ip="127.0.0.1", port=8000)
-drone = Pioneer(ip="10.1.100.106", mavlink_port=5656)
+num = CONFIG['standard_port']
+drone = Pioneer(ip=f"{CONFIG['ip_3']}{CONFIG['num_drone']}", mavlink_port=CONFIG['standard_port'])
 dr = Drone(drone=drone)
+dr.apply = True
 # print(drone.get_local_position_lps())
 
 dr.arm()
-dr.takeoff()
+dr.takeoff(1.5)
+time.sleep(7)
+
+# dr.wait_point = True
+
+dr.set_coord_check()
+dr.set_v()
+
+dr.speed_change([-1, 1, 0])
+
+# dr.goto([-3, -3, 1.5], apply=True)
+# # dr.wait_for_point()
+# dr.goto([3, 3, 1.5], apply=True)
 # # # # #
-time.sleep(5)
-# #
-while True:
-    dr.send_v([0.2, 0, 0, 0])
+# time.sleep(5)
+# # #
+# drone.land()
+# # time.sleep(5)
 # drone.disarm()
 
 
