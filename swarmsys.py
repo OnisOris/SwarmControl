@@ -182,6 +182,7 @@ class Drone:
         :param orientation: Ориентация, представляющая собой матрицу 3x3 из единичных векторов-строк. Первый вектор
         задает x, второй y, третий z.
         """
+        self.wait_point = False
         self.traj = np.array([0, 0, 0, 0, 0, 0])
         self.xyz_flag = False
         self.body = Body(point, orientation)
@@ -200,7 +201,14 @@ class Drone:
         self.speed_flag = True
         self.t0 = time.time()
 
-    def get_position(self) -> None | list:
+    def stop(self) -> None:
+        """
+        Функция снимает все флаги для остановки потоков
+        :return: None
+        """
+        self.speed_flag = False
+        self.xyz_flag = False
+    def get_position(self, filter=True) -> None | list:
         """
         Функция возвращает координату дрона с фильтром компонентов
         :return: list
@@ -210,10 +218,15 @@ class Drone:
             msg = msg_dict['msg']
             if not msg_dict['is_read'].is_set() or (msg_dict['is_read'].is_set()):
                 msg_dict['is_read'].set()
+                zero_point = np.array([0., 0., 0.])
                 if msg._header.srcComponent == 26:
-                    return [msg.x/1000, msg.y/1000, msg.z/1000]
+                    point = [msg.x/1000, msg.y/1000, msg.z/1000]
                 elif msg._header.srcComponent == 1:
-                    return [msg.x, msg.y, msg.z]
+                    point = [msg.x, msg.y, msg.z]
+                else:
+                    return None
+                if not np.all(np.equal(point, zero_point)):
+                    return point
                 else:
                     return None
             else:
@@ -251,11 +264,13 @@ class Drone:
 
     def goto(self, point: list | np.ndarray | None = None,
              orientation: list | np.ndarray | None = None,
-             apply: bool = False) -> None:
+             apply: bool = False,
+             wait_point: bool | None = True) -> None:
         """
         Функция перемещает дрон в заданное положение. Если задана точка назначения и вектор ориентации, тогда
         изменится все. Задана только ориентация или только точка, то изменится только нужный параметр.
         Если не задано ничего, то ничего не поменяется.
+        :param wait_point: Ждем, пока дрон не прилетит до точки
         :param apply: :param apply: Отправлять ли данные в дроны?
         :type apply: bool
         :param orientation: Ориентация, представляющая собой матрицу 3x3 из единичных векторов-строк. Первый вектор
@@ -276,7 +291,9 @@ class Drone:
             self.trajectory_write(self.body.point, point)
             self.body.point = point
         if self.apply & apply:
-            self.apply_position()
+            self.apply_position(point)
+        if self.wait_point:
+            self.wait_for_point(self.body.point)
 
     def send_v(self, v: list | ndarray) -> None:
         """
@@ -285,7 +302,13 @@ class Drone:
         :type v: list | np.ndarray
         :return: None
         """
-        self.drone.set_manual_speed(rot_z(v, CONFIG['rot_send_U']))
+        v = rot_z(v, CONFIG['rot_send_U'])
+        if v.shape == (2,):
+            self.drone.set_manual_speed(v[0], v[1], 1.5, 0)
+        elif v.shape == (3,):
+            self.drone.set_manual_speed(v[0], v[1], v[2], 0)
+        elif v.shape == (4,):
+            self.drone.set_manual_speed(v[0], v[1], v[2], v[3])
 
     def v_while(self) -> None:
         """
@@ -301,11 +324,14 @@ class Drone:
         Создает поток, который вызывает функцию v_while() для параллельной отправки вектора скорости
         :return: None
         """
-        self.t.append(threading.Thread(target=self.v_while(), args=()))
+        self.t.append(threading.Thread(target=self.v_while))
         self.t[-1].start()
 
     def speed_change(self, v: list | np.array) -> None:
-        self.body.v = v
+        if np.shape(v) == (3,):
+            self.body.v = v
+        elif np.shape(v) == (2,):
+            self.body.v = np.hstack([v, 0])
 
     def trajectory_write(self, previous_point: list | np.ndarray, current_point: list | np.ndarray) -> None:
         """
@@ -322,12 +348,12 @@ class Drone:
 
     def xyz_while(self):
         while self.xyz_flag:
-            coord = self.drone.get_local_position_lps()
+            coord = self.get_position()
             if coord is not None:
-                self.body.point = np.array(coord)
+                self.body.real_point = np.array(coord)
                 if CONFIG['trajectory_write']:
                     t = time.time() - self.t0
-                    stack = np.hstack([self.body.point, self.body.v, t])
+                    stack = np.hstack([self.body.real_point, self.body.v[0:2], t])
                     self.traj = np.vstack([self.traj, stack])
             time.sleep(0.05)
 
@@ -337,10 +363,11 @@ class Drone:
         :return: None
         """
         # if self.apply:
-        self.t.append(threading.Thread(target=self.xyz_while, args=()))
+        self.t.append(threading.Thread(target=self.xyz_while))
         self.t[-1].start()
 
     def apply_position(self,
+                       point: list | np.array | None = None,
                        rad: bool = False,
                        angle=0) -> None:
         """
@@ -357,11 +384,19 @@ class Drone:
             #     #                   self.body.orientation[0][0]) * 180 / np.pi
             #     yaw = angle * 180 / np.pi
             # yaw = angle * 180 / np.pi
-            self.drone.go_to_local_point(self.body.point[0],
-                                         self.body.point[1],
-                                         self.body.point[2],
-                                         # перед yaw стоит минус, так как дроны вращаются не в ту сторону в pio_sdk
-                                         yaw=0)
+            if point is None:
+                self.drone.go_to_local_point(self.body.point[0],
+                                             self.body.point[1],
+                                             self.body.point[2],
+                                             # перед yaw стоит минус, так как дроны вращаются не в ту сторону в pio_sdk
+                                             yaw=0)
+            else:
+                point = rot_z(point, CONFIG['rot_send_U'])
+                self.drone.go_to_local_point(point[0],
+                                             point[1],
+                                             point[2],
+                                             # перед yaw стоит минус, так как дроны вращаются не в ту сторону в pio_sdk
+                                             yaw=0)
 
     def euler_rotate(self, alpha: float, beta: float, gamma: float, apply: bool = False) -> None:
         """
@@ -511,13 +546,21 @@ class Drone:
             self.t.append(threading.Thread(target=self.drone.disarm, args=()))
             self.t[-1].start()
 
-    def takeoff(self) -> None:
+    def takeoff(self, height: float | int = 1.8) -> None:
         """
         Функция отправляет команду на взлет дрона
         :return: None
         """
+        def smart_takeoff():
+            self.drone.takeoff()
+            position = None
+            while position is None:
+                position = self.get_position()
+            x, y, z = position
+            self.goto([x, y, height])
+
         if self.apply:
-            self.t.append(threading.Thread(target=self.drone.takeoff, args=()))
+            self.t.append(threading.Thread(target=smart_takeoff(), args=()))
             self.t[-1].start()
 
     def land(self) -> None:
@@ -578,12 +621,12 @@ class Drone:
     def info(self):
         return f"x: {self.body.point[0]}, y: {self.body.point[1]}, z: {self.body.point[2]}"
 
-    def wait_for_point(self, point: list | ndarray, accuracy: float = 1e-3):
+    def wait_for_point(self, point: list | ndarray, accuracy: float = 1e-2):
         import time
         self.occupancy = True
         loguru.logger.debug(f"point = {point}")
         while self.occupancy:
-            k = self.drone.get_local_position_lps()
+            k = self.get_position()
             loguru.logger.debug(f"point = {point} k = {k}")
             if isinstance(k, list):
                 self.occupancy = not np.allclose(np.array(k), self.body.point, accuracy)
