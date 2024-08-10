@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import time
 from typing import Any
-
+import threading
 import loguru
 import numpy as np
 import ThreeDTool as tdt
 from ThreeDTool import Line_segment, Polygon, Line, Curve
-from numpy import cos, sin, ndarray, dtype
+from numpy import cos, sin, ndarray, dtype, pi
 from pioneer_sdk import Pioneer
 from body import Body
 from dspl import Dspl
+from config import CONFIG
 
 
 def set_barycenter(array: ndarray | list) -> ndarray:
@@ -78,11 +79,18 @@ def rot_z(vector: list | np.ndarray, angle: float | int) -> np.ndarray:
     :param angle: угол вращения, заданный в радианах
     :return: np.ndarray
     """
+    vector = np.array(vector)
     rotate_z = np.array([[cos(angle), -sin(angle), 0],
                          [sin(angle), cos(angle), 0],
                          [0, 0, 1]])
-    rot_vector = vector.dot(rotate_z)
-    return rot_vector
+    if vector.shape == (3,) or vector.shape == (1, 3):
+
+        rot_vector = vector.dot(rotate_z)
+        return rot_vector
+    elif vector.shape == (2,) or vector.shape == (1, 2):
+        vector = np.hstack([vector, 0])
+        rot_vector = vector.dot(rotate_z)
+        return rot_vector[0:2]
 
 
 def angle_from_vectors(vector1: ndarray, vector2: ndarray) -> ndarray:
@@ -174,19 +182,44 @@ class Drone:
         :param orientation: Ориентация, представляющая собой матрицу 3x3 из единичных векторов-строк. Первый вектор
         задает x, второй y, третий z.
         """
+        self.traj = np.array([0, 0, 0, 0, 0, 0])
+        self.xyz_flag = False
         self.body = Body(point, orientation)
         self.trajectory = np.array([])
         self.drone = drone
         self.apply = apply
         self.begin_point = point
         # характеристики дрона
-        self.height = 0.12
-        self.length = 0.29
-        self.width = 0.29
+        self.height = CONFIG['height']
+        self.length = CONFIG['lenght']
+        self.width = CONFIG['width']
         self.rad = np.linalg.norm([self.length / 2, self.width / 2])
         self.active = False  # Флаг, показывающий, что дрон в активном состоянии, т.е меняет свое положение
         self.t = []
         self.occupancy = False
+        self.speed_flag = True
+        self.t0 = time.time()
+
+    def get_position(self) -> None | list:
+        """
+        Функция возвращает координату дрона с фильтром компонентов
+        :return: list
+        """
+        if 'LOCAL_POSITION_NED' in self.drone.msg_archive:
+            msg_dict = self.drone.msg_archive['LOCAL_POSITION_NED']
+            msg = msg_dict['msg']
+            if not msg_dict['is_read'].is_set() or (msg_dict['is_read'].is_set()):
+                msg_dict['is_read'].set()
+                if msg._header.srcComponent == 26:
+                    return [msg.x/1000, msg.y/1000, msg.z/1000]
+                elif msg._header.srcComponent == 1:
+                    return [msg.x, msg.y, msg.z]
+                else:
+                    return None
+            else:
+                return None
+        else:
+            return None
 
     def attach_body(self, body: Body) -> None:
         """
@@ -245,14 +278,34 @@ class Drone:
         if self.apply & apply:
             self.apply_position()
 
-    def v(self, v: list | ndarray) -> None:
+    def send_v(self, v: list | ndarray) -> None:
         """
         Функция задает вектор скорости дрону
         :param v: Вектор скорости
         :type v: list | np.ndarray
         :return: None
         """
-        self.drone.set_manual_speed(*v)
+        self.drone.set_manual_speed(rot_z(v, CONFIG['rot_send_U']))
+
+    def v_while(self) -> None:
+        """
+        Функция задает цикл while на отправку вектора скорости в body с периодом period_send_v
+        :return: None
+        """
+        while self.speed_flag:
+            self.send_v(self.body.v)
+            time.sleep(CONFIG['period_send_v'])
+
+    def set_v(self) -> None:
+        """
+        Создает поток, который вызывает функцию v_while() для параллельной отправки вектора скорости
+        :return: None
+        """
+        self.t.append(threading.Thread(target=self.v_while(), args=()))
+        self.t[-1].start()
+
+    def speed_change(self, v: list | np.array) -> None:
+        self.body.v = v
 
     def trajectory_write(self, previous_point: list | np.ndarray, current_point: list | np.ndarray) -> None:
         """
@@ -266,6 +319,26 @@ class Drone:
         segment = Line_segment(point1=previous_point, point2=current_point)
         segment.color = 'orange'
         self.trajectory = np.hstack((self.trajectory, segment))
+
+    def xyz_while(self):
+        while self.xyz_flag:
+            coord = self.drone.get_local_position_lps()
+            if coord is not None:
+                self.body.point = np.array(coord)
+                if CONFIG['trajectory_write']:
+                    t = time.time() - self.t0
+                    stack = np.hstack([self.body.point, self.body.v, t])
+                    self.traj = np.vstack([self.traj, stack])
+            time.sleep(0.05)
+
+    def set_coord_check(self) -> None:
+        """
+        Функция отправляет команду на приземление дрона
+        :return: None
+        """
+        # if self.apply:
+        self.t.append(threading.Thread(target=self.xyz_while, args=()))
+        self.t[-1].start()
 
     def apply_position(self,
                        rad: bool = False,
@@ -425,7 +498,6 @@ class Drone:
         Функция отправляет команду на включение двигателей на дрон
         :return: None
         """
-        import threading
         if self.apply:
             self.t.append(threading.Thread(target=self.drone.arm, args=()))
             self.t[-1].start()
@@ -435,7 +507,6 @@ class Drone:
         Функция отправляет команду на отключение двигателей на дрон
         :return: None
         """
-        import threading
         if self.apply:
             self.t.append(threading.Thread(target=self.drone.disarm, args=()))
             self.t[-1].start()
@@ -445,7 +516,6 @@ class Drone:
         Функция отправляет команду на взлет дрона
         :return: None
         """
-        import threading
         if self.apply:
             self.t.append(threading.Thread(target=self.drone.takeoff, args=()))
             self.t[-1].start()
@@ -455,7 +525,6 @@ class Drone:
         Функция отправляет команду на приземление дрона
         :return: None
         """
-        import threading
         if self.apply:
             self.t.append(threading.Thread(target=self.drone.land, args=()))
             self.t[-1].start()
@@ -791,10 +860,9 @@ class Darray:
             self.apply_position()
 
     def go_traj(self, traj: Curve) -> None:
-        import threading as th
         for point in traj:
             self.goto(point)
-            t = th.Thread(target=self.wait_for_point)
+            t = threading.Thread(target=self.wait_for_point)
             t.start()
             while self.occupancy:
                 pass
