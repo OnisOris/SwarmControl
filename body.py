@@ -24,6 +24,7 @@ class Body:
             self.point = np.array(point)
         else:
             self.point = point
+        self.real_point = np.array([0, 0, 0])  # реальные координаты
         # Матрица ориентации
         if isinstance(orientation, list):
             self.orientation = np.array(orientation)
@@ -32,7 +33,7 @@ class Body:
         self.name_body = name_body
         self.length = lenght
         self.text = False
-        self.v = np.array([0, 0, 0])  # Скорость тела
+        self.v = np.array([0, 0, 0])  # Скорость тела (таргетная)
 
     def show(self, ax) -> None:
         """
