@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
-from icecream import ic
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 mpl.use('Qt5Agg')
@@ -25,7 +24,6 @@ class Plotter:
 
     def all_plot(self):
         if self.plot:
-            ic()
             self.df.plot(x='t', title=self.title)
             plt.show()
     def xy_plot(self):
