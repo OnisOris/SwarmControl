@@ -27,7 +27,7 @@ dr.takeoff()
 time.sleep(5)
 # #
 while True:
-    dr.v([0.2, 0, 0, 0])
+    dr.send_v([0.2, 0, 0, 0])
 # drone.disarm()
 
 

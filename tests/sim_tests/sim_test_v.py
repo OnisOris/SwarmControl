@@ -30,6 +30,6 @@ time.sleep(10)
 k = 0
 while True:
     k += np.pi/9
-    dr.v([sin(k), cos(k), 0, 0])
+    dr.send_v([sin(k), cos(k), 0, 0])
     time.sleep(0.5)
 
