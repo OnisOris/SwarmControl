@@ -8,9 +8,9 @@ import ThreeDTool as tdt
 from ThreeDTool import Line_segment, Polygon, Line, Curve
 from numpy import cos, sin, ndarray, dtype, pi
 from pioneer_sdk import Pioneer
-from body import Body
+from .body import Body
 from dspl import Dspl
-from config import CONFIG
+from .config import CONFIG
 import pygame
 from icecream import ic
 import pandas as pd
