@@ -336,7 +336,7 @@ class Drone:
         """
         v = ampl * rot_z(v, CONFIG['rot_send_U'])
         if v.shape == (2,):
-            self.drone.set_manual_speed(v[0], v[1], 1.5, 0)
+            self.drone.set_manual_speed(v[0], v[1], 0, 0)
         elif v.shape == (3,):
             self.drone.set_manual_speed(v[0], v[1], v[2], 0)
         elif v.shape == (4,):
