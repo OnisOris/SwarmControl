@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import time
 from typing import Any
 import threading
@@ -12,7 +11,9 @@ from pioneer_sdk import Pioneer
 from body import Body
 from dspl import Dspl
 from config import CONFIG
-
+import pygame
+from icecream import ic
+import pandas as pd
 
 def set_barycenter(array: ndarray | list) -> ndarray:
     """
@@ -175,15 +176,18 @@ class Drone:
                                                      [0, 1, 0],
                                                      [0, 0, 1]]),
                  drone: Pioneer = None,
-                 apply: bool = True):
+                 apply: bool = True,
+                 joystick_on: bool = False):
         """
         В данной реализации дрон имеет координату point и вектор ориентации в глобальной системе координат
         :param point:
         :param orientation: Ориентация, представляющая собой матрицу 3x3 из единичных векторов-строк. Первый вектор
         задает x, второй y, третий z.
         """
+        self.joystick_on = joystick_on
+
         self.wait_point = False
-        self.traj = np.array([0, 0, 0, 0, 0, 0])
+        self.traj = np.array([0, 0, 0, 0, 0, 0, 0])
         self.xyz_flag = False
         self.body = Body(point, orientation)
         self.trajectory = np.array([])
@@ -200,6 +204,13 @@ class Drone:
         self.occupancy = False
         self.speed_flag = True
         self.t0 = time.time()
+        if self.joystick_on:
+            pygame.init()
+            self.joystick = pygame.joystick.Joystick(0)
+            self.joystick.init()
+            print(f"Название джойстика: {self.joystick.get_name()}")
+            print(f"Количество осей: {self.joystick.get_numaxes()}")
+            print(f"Количество кнопок: {self.joystick.get_numbuttons()}")
 
     def stop(self) -> None:
         """
@@ -208,6 +219,21 @@ class Drone:
         """
         self.speed_flag = False
         self.xyz_flag = False
+        if self.joystick_on:
+            pygame.quit()
+
+    def save_data(self):
+        self.stop()
+        time.sleep(2)
+        self.drone.land()
+        time.sleep(8)
+        self.drone.disarm()
+        ic(self.traj)
+        df = pd.DataFrame(self.traj, columns=['x', 'y', 'z', 'Vx', 'Vy', 'Vz', 't'])
+        df.to_csv('../../plot_out/data.csv')
+        # with open(f'./plot_out/xyz_Vx_Vy_Vz_t.npy', 'wb') as f:
+        #     np.save(f, self.traj)
+
     def get_position(self, filter=False) -> None | list:
         """
         Функция возвращает координату дрона с фильтром компонентов
@@ -222,10 +248,10 @@ class Drone:
                 zero_point = np.array([0., 0., 0.])
                 if msg._header.srcComponent == 26:
                     point = [msg.x/1000, msg.y/1000, msg.z/1000]
-                    ic(point)
+                    # ic(point)
                 elif msg._header.srcComponent == 1:
                     point = [msg.x, msg.y, msg.z]
-                    ic(point)
+                    # ic(point)
                 else:
                     return None
                 if filter:
@@ -301,14 +327,14 @@ class Drone:
         if self.wait_point:
             self.wait_for_point(self.body.point)
 
-    def send_v(self, v: list | ndarray) -> None:
+    def send_v(self, v: list | ndarray, ampl: float | int = 1) -> None:
         """
         Функция задает вектор скорости дрону
         :param v: Вектор скорости
         :type v: list | np.ndarray
         :return: None
         """
-        v = rot_z(v, CONFIG['rot_send_U'])
+        v = ampl * rot_z(v, CONFIG['rot_send_U'])
         if v.shape == (2,):
             self.drone.set_manual_speed(v[0], v[1], 1.5, 0)
         elif v.shape == (3,):
@@ -321,9 +347,40 @@ class Drone:
         Функция задает цикл while на отправку вектора скорости в body с периодом period_send_v
         :return: None
         """
-        while self.speed_flag:
-            self.send_v(self.body.v)
-            time.sleep(CONFIG['period_send_v'])
+        if self.joystick_on:
+            f = np.array([0., 0., 0., 0., 0., 0., 0., 0.])
+            flag_arm = False
+            while self.speed_flag:
+                pygame.event.pump()
+                axes = [round(self.joystick.get_axis(i), 2) for i in range(self.joystick.get_numaxes())]
+                if not np.allclose(axes, f, 1e-3):
+                    f = axes
+                    # ic(axes[4])
+                    if f[5] == 1.0:
+                        self.send_v([f[0], -f[1], f[2]], 3)
+                    elif f[5] == -1.0:
+                        self.send_v(self.body.v)
+                    if f[4] == 1.0:
+                        if not flag_arm:
+                            loguru.logger.debug("arm_joystick")
+                            self.drone.arm()
+                            loguru.logger.debug("takeoff_joystick")
+                            self.drone.takeoff()
+                        flag_arm = True
+                    elif axes[4] == -1.0:
+                        if flag_arm:
+                            loguru.logger.debug("land_joystick")
+                            self.drone.land()
+                            loguru.logger.debug("disarm_joystick")
+                            self.drone.disarm()
+                        flag_arm = False
+                    if f[7] == 1:
+                        self.save_data()
+                time.sleep(CONFIG['period_send_v'])
+        else:
+            while self.speed_flag:
+                self.send_v(self.body.v)
+                time.sleep(CONFIG['period_send_v'])
 
     def set_v(self) -> None:
         """
@@ -359,7 +416,7 @@ class Drone:
                 self.body.real_point = np.array(coord)
                 if CONFIG['trajectory_write']:
                     t = time.time() - self.t0
-                    stack = np.hstack([self.body.real_point, self.body.v[0:2], t])
+                    stack = np.hstack([self.body.real_point, self.body.v[0:3], t])
                     self.traj = np.vstack([self.traj, stack])
             time.sleep(0.05)
 
