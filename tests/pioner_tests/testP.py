@@ -12,11 +12,14 @@ from config import CONFIG
 # import icecream as ic
 from icecream import ic
 
-pioneer = Pioneer(ip="10.1.100.105", mavlink_port=5656, logger=False)
+pioneer = Pioneer(ip="10.1.100.108", mavlink_port=5656, logger=False)
 drone = Drone(drone=pioneer, apply=True)
-drone.set_coord_check()
 drone.arm()
+time.sleep(4)
 drone.takeoff(1.8)
+
+
+drone.set_coord_check()
 time.sleep(3)
 coord = [-2, -2, 1.5]
 # coord = rot_z(coord, -pi / 2)
@@ -35,20 +38,11 @@ t0 = time.time()
 k = 0
 # drone.write_traj = True
 # print("fff")
-while k < np.pi/2*3:
+while k < np.pi/2*6:
     # k += np.pi/2
     drone.speed_change([sin(k), cos(k)])
     # v.speed = [sin(k), cos(k)]
     # print(f"xyz = {v.xyz} \n speed = {v.speed}")
     time.sleep(5)
     k += np.pi / 2
-drone.stop()
-# v.flag = False
-# v.xyz_flag = False
-time.sleep(2)
-drone.land()
-time.sleep(8)
-drone.disarm()
-# # 70, -70
-with open(f'../../plot_out/test_105.npy', 'wb') as f:
-    np.save(f, drone.traj)
+
