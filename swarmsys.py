@@ -208,11 +208,12 @@ class Drone:
         """
         self.speed_flag = False
         self.xyz_flag = False
-    def get_position(self, filter=True) -> None | list:
+    def get_position(self, filter=False) -> None | list:
         """
         Функция возвращает координату дрона с фильтром компонентов
         :return: list
         """
+        from icecream import ic
         if 'LOCAL_POSITION_NED' in self.drone.msg_archive:
             msg_dict = self.drone.msg_archive['LOCAL_POSITION_NED']
             msg = msg_dict['msg']
@@ -221,14 +222,19 @@ class Drone:
                 zero_point = np.array([0., 0., 0.])
                 if msg._header.srcComponent == 26:
                     point = [msg.x/1000, msg.y/1000, msg.z/1000]
+                    ic(point)
                 elif msg._header.srcComponent == 1:
                     point = [msg.x, msg.y, msg.z]
+                    ic(point)
                 else:
                     return None
-                if not np.all(np.equal(point, zero_point)):
+                if filter:
+                    if not np.all(np.equal(point, zero_point)):
+                        return point
+                    else:
+                        return None
+                else:
                     return point
-                else:
-                    return None
             else:
                 return None
         else:
@@ -348,7 +354,7 @@ class Drone:
 
     def xyz_while(self):
         while self.xyz_flag:
-            coord = self.get_position()
+            coord = self.get_position(filter=False)
             if coord is not None:
                 self.body.real_point = np.array(coord)
                 if CONFIG['trajectory_write']:
