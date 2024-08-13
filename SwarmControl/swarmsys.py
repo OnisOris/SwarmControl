@@ -11,7 +11,6 @@ from pioneer_sdk import Pioneer
 from .body import Body
 from .dspl import Dspl
 import pygame
-from icecream import ic
 import pandas as pd
 
 def set_barycenter(array: ndarray | list) -> ndarray:
@@ -176,7 +175,7 @@ class Drone:
     """
 
     def __init__(self,
-                 CONFIG: Config,
+                 CONFIG: dict,
                  point: list | np.ndarray = np.array([0, 0, 0]),
                  orientation: np.ndarray = np.array([[1, 0, 0],
                                                      [0, 1, 0],
@@ -234,18 +233,14 @@ class Drone:
         self.drone.land()
         time.sleep(8)
         self.drone.disarm()
-        ic(self.traj)
         df = pd.DataFrame(self.traj, columns=['x', 'y', 'z', 'Vx', 'Vy', 'Vz', 't'])
         df.to_csv('../../plot_out/data.csv')
-        # with open(f'./plot_out/xyz_Vx_Vy_Vz_t.npy', 'wb') as f:
-        #     np.save(f, self.traj)
 
     def get_position(self, filter=False) -> None | list:
         """
         Функция возвращает координату дрона с фильтром компонентов
         :return: list
         """
-        from icecream import ic
         if 'LOCAL_POSITION_NED' in self.drone.msg_archive:
             msg_dict = self.drone.msg_archive['LOCAL_POSITION_NED']
             msg = msg_dict['msg']
@@ -254,10 +249,8 @@ class Drone:
                 zero_point = np.array([0., 0., 0.])
                 if msg._header.srcComponent == 26:
                     point = [msg.x/1000, msg.y/1000, msg.z/1000]
-                    # ic(point)
                 elif msg._header.srcComponent == 1:
                     point = [msg.x, msg.y, msg.z]
-                    # ic(point)
                 else:
                     return None
                 if filter:
@@ -361,7 +354,6 @@ class Drone:
                 axes = [round(self.joystick.get_axis(i), 2) for i in range(self.joystick.get_numaxes())]
                 if not np.allclose(axes, f, 1e-3):
                     f = axes
-                    # ic(axes[4])
                     if f[5] == 1.0:
                         self.send_v([f[0], -f[1], f[2], -f[3]], 3)
                     elif f[5] == -1.0:
@@ -431,7 +423,6 @@ class Drone:
         Функция отправляет команду на приземление дрона
         :return: None
         """
-        # if self.apply:
         self.t.append(threading.Thread(target=self.xyz_while))
         self.t[-1].start()
 
@@ -675,17 +666,14 @@ class Drone:
         for border in map_objects:
             p = rectangle.polygon_analyze(border)
             if p is not None:
-                # loguru.logger.debug((p))
                 polygons = np.hstack([polygons, border])
                 points = np.vstack([points, p])
         if np.shape(points) != (3,):
             points = points[1:]
         points = np.vstack([points, target_point])
-        # loguru.logger.debug(points)
         points_int = tdt.Points(np.array(points), color='red', s=10)
         dp = tdt.Dspl(np.hstack([points_int, polygons, line_s, rectangle]))
         dp.show()
-        # loguru.logger.debug(points_int)
 
     def info(self):
         return f"x: {self.body.point[0]}, y: {self.body.point[1]}, z: {self.body.point[2]}"
@@ -985,7 +973,6 @@ class Darray:
         eq = np.zeros((np.shape(self.drones)))
         while self.occupancy:
             array = self.drones
-            # eq = np.zeros((np.shape(self.drones)))
             for i, drone in enumerate(self.drones):
                 if drone.drone.point_reached():
                     eq[i] = True
@@ -996,8 +983,6 @@ class Darray:
                 self.occupancy = False
                 break
             time.sleep(0.5)
-
-        # th.current_thread()
 
     def trajectory_write(self, previous_xyz: list | ndarray, current_xyz: list | ndarray) -> None:
         """
@@ -1101,16 +1086,11 @@ class Map:
         """
         borders = np.array([])
         for obj in self.objects:
-            # loguru.logger.debug(obj.__class__)
-            # loguru.logger.debug(type(obj) == Darray)
             if type(obj) == Drone:
-                # loguru.logger.debug("1")
                 if obj is not drone:
-                    # loguru.logger.debug("2")
                     bord = obj.get_polygon()
                     borders = np.hstack([borders, bord])
             elif type(obj) == Darray:
-                # loguru.logger.debug("4")
                 for dr in obj:
                     loguru.logger.debug(dr is obj)
                     if dr is not drone:
@@ -1119,12 +1099,4 @@ class Map:
                         bord = dr.get_polygon()
                         loguru.logger.debug(f"bord -> {bord}")
                         borders = np.hstack([borders, bord])
-        # loguru.logger.debug(f"5 -> {borders}")
         return borders
-    # @property
-    # def borders(self):
-    #     return self.borders
-
-    # @borders.setter
-    # def borders(self, borders):
-    #     self.borders = borders
