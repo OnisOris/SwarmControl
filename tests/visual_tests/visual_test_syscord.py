@@ -1,4 +1,4 @@
-from syscord import Syscord
+from SwarmControl.syscord import Syscord
 from point import Point
 import numpy as np
 

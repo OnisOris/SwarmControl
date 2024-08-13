@@ -1,10 +1,7 @@
-from swarmsys import *
-from ThreeDTool import Points
+from SwarmControl.swarmsys import *
 from pioneer_sdk import Pioneer
 import matplotlib
-import time
-from threading import Thread
-from loguru import logger
+
 matplotlib.use('WebAgg')
 
 pioners = []
@@ -26,7 +23,6 @@ darr1.takeoff()
 # darr2.arm()
 # darr2.takeoff()
 
-from ThreeDTool import Curve
 # [2.5, 0, 1], [-2.5, -2.5, 1]
 traj1 = np.array([[-3.12, 1.66, 1], [-1, 1.66, 1]])
 # logger.debug(*traj1)

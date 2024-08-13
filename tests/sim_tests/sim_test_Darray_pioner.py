@@ -1,4 +1,4 @@
-from swarmsys import *
+from SwarmControl.swarmsys import *
 from ThreeDTool import Points
 from pioneer_sdk import Pioneer
 import matplotlib

@@ -1,5 +1,5 @@
-from swarmsys import *
-from dspl import Dspl
+from SwarmControl.swarmsys import *
+from SwarmControl.dspl import Dspl
 import numpy as np
 from ThreeDTool import Points, loxodrome
 

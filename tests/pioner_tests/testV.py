@@ -1,5 +1,4 @@
-from swarmsys import *
-from ThreeDTool import Points
+from SwarmControl.swarmsys import *
 from pioneer_sdk import Pioneer
 import matplotlib
 import time

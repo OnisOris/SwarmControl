@@ -1,5 +1,5 @@
 # from scheduler import *
-from swarmsys import Darray, Map
+from SwarmControl.swarmsys import Darray, Map
 from ThreeDTool import Dspl, Line_segment, Points
 import matplotlib
 matplotlib.use('WebAgg')

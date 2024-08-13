@@ -1,6 +1,4 @@
-from icecream import icecream as ic
-from numpy import pi
-from swarmsys import *
+from SwarmControl.swarmsys import *
 from ThreeDTool import Points
 # import pytest
 rot_point = np.array([10, 0, 0])

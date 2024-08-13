@@ -1,4 +1,4 @@
-from swarmsys import *
+from SwarmControl.swarmsys import *
 from ThreeDTool import Points
 import matplotlib
 matplotlib.use('WebAgg')

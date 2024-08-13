@@ -1,4 +1,4 @@
-from swarmsys import *
+from SwarmControl.swarmsys import *
 from ThreeDTool import Points
 
 rot_point = np.array([40, 40, 0])

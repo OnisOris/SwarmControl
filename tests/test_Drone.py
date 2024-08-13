@@ -1,5 +1,5 @@
 from ThreeDTool import loxodrome
-from swarmsys import Drone
+from SwarmControl.swarmsys import Drone
 import numpy as np
 from numpy import cos, sin
 

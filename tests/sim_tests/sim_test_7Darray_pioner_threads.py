@@ -1,4 +1,4 @@
-from swarmsys import *
+from SwarmControl.swarmsys import *
 from pioneer_sdk import Pioneer
 import matplotlib
 import threading

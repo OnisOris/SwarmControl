@@ -1,5 +1,5 @@
 from ThreeDTool import loxodrome
-from swarmsys import Darray
+from SwarmControl.swarmsys import Darray
 import numpy as np
 from numpy import cos, sin
 import random
