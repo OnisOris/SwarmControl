@@ -5,6 +5,7 @@ CONFIG = {
     'ip_3': '10.1.100.',
     'num_drone': 105,
     'period_send_v': 0.05,
+    'period_get_xyz': 0.05,
     'height': 0.12,
     'lenght': 0.29,
     'width':  0.29,
