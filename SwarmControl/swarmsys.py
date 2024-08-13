@@ -227,14 +227,15 @@ class Drone:
         if self.joystick_on:
             pygame.quit()
 
-    def save_data(self):
+    def save_data(self, file_name: str = 'data.csv'):
         self.stop()
         time.sleep(2)
         self.drone.land()
         time.sleep(8)
         self.drone.disarm()
+        loguru.logger.debug(self.traj)
         df = pd.DataFrame(self.traj, columns=['x', 'y', 'z', 'Vx', 'Vy', 'Vz', 't'])
-        df.to_csv('../../plot_out/data.csv')
+        df.to_csv(f'../../plot_out/{file_name}')
 
     def get_position(self, filter=False) -> None | list:
         """
@@ -416,7 +417,7 @@ class Drone:
                     t = time.time() - self.t0
                     stack = np.hstack([self.body.real_point, self.body.v[0:3], t])
                     self.traj = np.vstack([self.traj, stack])
-            time.sleep(0.05)
+            time.sleep(self.CONFIG['period_get_xyz'])
 
     def set_coord_check(self) -> None:
         """
