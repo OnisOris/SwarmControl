@@ -10,7 +10,6 @@ from numpy import cos, sin, ndarray, dtype, pi
 from pioneer_sdk import Pioneer
 from .body import Body
 from .dspl import Dspl
-from .config import CONFIG
 import pygame
 from icecream import ic
 import pandas as pd
@@ -92,6 +91,10 @@ def rot_z(vector: list | np.ndarray, angle: float | int) -> np.ndarray:
         vector = np.hstack([vector, 0])
         rot_vector = vector.dot(rotate_z)
         return rot_vector[0:2]
+    elif vector.shape == (4,) or vector.shape == (1, 4):
+        rot_vector = vector[0:3].dot(rotate_z)
+        return np.hstack([rot_vector, vector[3]])
+
 
 
 def angle_from_vectors(vector1: ndarray, vector2: ndarray) -> ndarray:
@@ -166,12 +169,15 @@ def euler_rotate(vector: list | np.ndarray, alpha: float, beta: float, gamma: fl
     return rot_vector
 
 
+
 class Drone:
     """
     Класс единицы дрона в трехмерном пространстве.
     """
 
-    def __init__(self, point: list | np.ndarray = np.array([0, 0, 0]),
+    def __init__(self,
+                 CONFIG: Config,
+                 point: list | np.ndarray = np.array([0, 0, 0]),
                  orientation: np.ndarray = np.array([[1, 0, 0],
                                                      [0, 1, 0],
                                                      [0, 0, 1]]),
@@ -185,7 +191,7 @@ class Drone:
         задает x, второй y, третий z.
         """
         self.joystick_on = joystick_on
-
+        self.CONFIG = CONFIG
         self.wait_point = False
         self.traj = np.array([0, 0, 0, 0, 0, 0, 0])
         self.xyz_flag = False
@@ -334,7 +340,7 @@ class Drone:
         :type v: list | np.ndarray
         :return: None
         """
-        v = ampl * rot_z(v, CONFIG['rot_send_U'])
+        v = ampl * rot_z(v, self.CONFIG['rot_send_U'])
         if v.shape == (2,):
             self.drone.set_manual_speed(v[0], v[1], 0, 0)
         elif v.shape == (3,):
@@ -357,7 +363,7 @@ class Drone:
                     f = axes
                     # ic(axes[4])
                     if f[5] == 1.0:
-                        self.send_v([f[0], -f[1], f[2]], 3)
+                        self.send_v([f[0], -f[1], f[2], -f[3]], 3)
                     elif f[5] == -1.0:
                         self.send_v(self.body.v)
                     if f[4] == 1.0:
@@ -376,11 +382,11 @@ class Drone:
                         flag_arm = False
                     if f[7] == 1:
                         self.save_data()
-                time.sleep(CONFIG['period_send_v'])
+                time.sleep(self.CONFIG['period_send_v'])
         else:
             while self.speed_flag:
                 self.send_v(self.body.v)
-                time.sleep(CONFIG['period_send_v'])
+                time.sleep(self.CONFIG['period_send_v'])
 
     def set_v(self) -> None:
         """
@@ -414,7 +420,7 @@ class Drone:
             coord = self.get_position(filter=False)
             if coord is not None:
                 self.body.real_point = np.array(coord)
-                if CONFIG['trajectory_write']:
+                if self.CONFIG['trajectory_write']:
                     t = time.time() - self.t0
                     stack = np.hstack([self.body.real_point, self.body.v[0:3], t])
                     self.traj = np.vstack([self.traj, stack])
@@ -454,7 +460,7 @@ class Drone:
                                              # перед yaw стоит минус, так как дроны вращаются не в ту сторону в pio_sdk
                                              yaw=0)
             else:
-                point = rot_z(point, CONFIG['rot_send_U'])
+                point = rot_z(point, self.CONFIG['rot_send_U'])
                 self.drone.go_to_local_point(point[0],
                                              point[1],
                                              point[2],

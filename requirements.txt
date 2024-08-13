@@ -1,5 +1,5 @@
 numpy~=1.26.4
-ThreeDTool~=0.0.3
+ThreeDTool @ git+https://github.com/OnisOris/ThreeDTool@496250e0fc2db1d2cd4e01c63d2c1216817b13d9
 matplotlib~=3.9.0
 loguru~=0.7.2
 pioneer_sdk
