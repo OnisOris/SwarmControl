@@ -2,11 +2,11 @@ from icecream import ic
 import numpy as np
 import matplotlib as mpl
 
-# mpl.use('Qt5Agg')
-mpl.use('TkAgg')
+mpl.use('Qt5Agg')
+# mpl.use('TkAgg')
 import pandas as pd
 from ThreeDTool import Up, Dspl, normalization
-
+from SwarmControl.plotBuilder import zero_check
 # with open("./plot_out/test_105.npy", 'rb') as f:
 #     array = np.load(f)
 # ic(array)
@@ -29,12 +29,7 @@ from ThreeDTool import Up, Dspl, normalization
 # # plotter2.x_dot()
 # # plotter2.y_dot()
 # # plotter2.xy_pred()
-def is_zero(arr):
-    if np.allclose(arr, [0., 0., 0.], 1e-8):
-        return True
-    else:
-        return False
-df = pd.read_csv('./plot_out/data.csv', index_col=0)
+df = pd.read_csv('../plot_out/xyz_Vx_Vy_Vz_t.npy', index_col=0)
 df.plot(x='t')
 # plt.show()
 # ic(df[['x', 'y', 'z']].to_numpy())
@@ -42,50 +37,6 @@ df.plot(x='t')
 up = Up(df[['x', 'y', 'z']], 'plot')
 up_zeros = Up([[0, 0, 0]])
 up_not_zeros = Up([[0, 0, 0]])
-
-
-def zero_check(arr, i):
-    if is_zero(arr[i]):
-        ahead = 0
-        behind = 0
-        k = 1
-        j = 1
-        while True:
-            # print(k, j)
-            if i + k == arr.shape[0] - 1:
-                break
-            else:
-                # if i + k == np.shape(arr)[0]-1:
-                #     break
-                ic(i+k-1)
-                ic(arr.shape)
-                if not is_zero(arr[i + k]):
-                    break
-            ahead += 1
-            k += 1
-            if i+k == np.shape(arr)[0]-100:
-                break
-        while True:
-            if i - j == 0:
-                break
-            else:
-                if not is_zero(arr[i - j]):
-                    break
-            behind += 1
-            j += 1
-        # print(f"ahead = {ahead}, behind = {behind}")
-        P_ia1 = arr[i + ahead + 1]
-        P_ib1 = arr[i - behind - 1]
-        # print(f'Pa = {P_ia1}', f"Pb = {P_ib1}")
-        var = P_ia1 - P_ib1
-        L = np.linalg.norm(var)
-        # print(f"L = {L}")
-        v = normalization(var, L / (2 + ahead + behind))
-        # print(f"v = {v}")
-        out = P_ib1 + v * (behind + 1)
-        return out
-    else:
-        return arr[i]
 
 
 for i, obj in enumerate(up):

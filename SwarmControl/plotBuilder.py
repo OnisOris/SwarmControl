@@ -5,9 +5,56 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from ThreeDTool import Up, Dspl, normalization
 mpl.use('Qt5Agg')
-
-
+def is_zero(arr):
+    if np.allclose(arr, [0., 0., 0.], 1e-8):
+        return True
+    else:
+        return False
+def zero_check(arr, i):
+    """
+    Функция принимает массив arr размерностью nx3 и индекс исследуемой части. Если arr[i] не равен нулю,
+    то он возвращает этот же элемент, если все части элемента равны нулю, то высчитывается количество нулевых точек с
+    двух сторон, высчитывается длина этого промежутка и потом строится вектор, равный
+    v = normalization(var, L / (2 + ahead + behind)), который прибавляется к первой ненулевой части.
+    Кратко: мы предсказываем, где был дрон между потерей данных в этой точке с индексом i
+    :param arr:
+    :param i:
+    :return:
+    """
+    if is_zero(arr[i]):
+        ahead = 0
+        behind = 0
+        k = 1
+        j = 1
+        while True:
+            if i + k == arr.shape[0] - 1:
+                break
+            else:
+                if not is_zero(arr[i + k]):
+                    break
+            ahead += 1
+            k += 1
+            if i+k == np.shape(arr)[0]-100:
+                break
+        while True:
+            if i - j == 0:
+                break
+            else:
+                if not is_zero(arr[i - j]):
+                    break
+            behind += 1
+            j += 1
+        P_ia1 = arr[i + ahead + 1]
+        P_ib1 = arr[i - behind - 1]
+        var = P_ia1 - P_ib1
+        L = np.linalg.norm(var)
+        v = normalization(var, L / (2 + ahead + behind))
+        out = P_ib1 + v * (behind + 1)
+        return out
+    else:
+        return arr[i]
 class Plotter:
     def __init__(self, data_path: str, columns=None, title: str = "Plots", out_img_path: str = "./"):
         if columns is None:

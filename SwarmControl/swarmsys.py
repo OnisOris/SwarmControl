@@ -235,7 +235,7 @@ class Drone:
         self.drone.disarm()
         loguru.logger.debug(self.traj)
         df = pd.DataFrame(self.traj, columns=['x', 'y', 'z', 'Vx', 'Vy', 'Vz', 't'])
-        df.to_csv(f'../../plot_out/{file_name}')
+        df.to_csv(f'./{file_name}')
 
     def get_position(self, filter=False) -> None | list:
         """
@@ -410,7 +410,7 @@ class Drone:
 
     def xyz_while(self):
         while self.xyz_flag:
-            coord = self.get_position(filter=False)
+            coord = self.get_position(filter=True)
             if coord is not None:
                 self.body.real_point = np.array(coord)
                 if self.CONFIG['trajectory_write']:
@@ -421,7 +421,7 @@ class Drone:
 
     def set_coord_check(self) -> None:
         """
-        Функция отправляет команду на приземление дрона
+        Функция запускает поток отслеживания координат
         :return: None
         """
         self.t.append(threading.Thread(target=self.xyz_while))
@@ -610,6 +610,7 @@ class Drone:
     def takeoff(self, height: float | int = 1.8) -> None:
         """
         Функция отправляет команду на взлет дрона
+        :param height: Высота взлета
         :return: None
         """
         def smart_takeoff():
