@@ -16,7 +16,8 @@ setup(
     long_description_content_type='text/markdown',
     url='https://github.com/OnisOris/SwarmControl',
     packages=find_packages(),
-    install_requires=['numpy', 'matplotlib', 'ThreeDTool', 'loguru', 'tornado', 'pandas', 'pygame', 'scikit-learn'],
+    install_requires=['numpy', 'matplotlib', 'ThreeDTool', 'loguru', 'tornado', 'pandas', 'pygame', 'scikit-learn',
+                      'pioneer_sdk'],
     classifiers=[
         'Programming Language :: Python :: 3.12',
         'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',

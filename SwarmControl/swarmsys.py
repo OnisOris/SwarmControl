@@ -10,7 +10,6 @@ from numpy import cos, sin, ndarray, dtype, pi
 from pioneer_sdk import Pioneer
 from .body import Body
 from .dspl import Dspl
-import pygame
 import pandas as pd
 
 def set_barycenter(array: ndarray | list) -> ndarray:
@@ -193,7 +192,7 @@ class Drone:
         self.CONFIG = CONFIG
         self.wait_point = False
         self.traj = np.array([0, 0, 0, 0, 0, 0, 0])
-        self.xyz_flag = False
+        self.xyz_flag = True
         self.body = Body(point, orientation)
         self.trajectory = np.array([])
         self.drone = drone
@@ -210,6 +209,7 @@ class Drone:
         self.speed_flag = True
         self.t0 = time.time()
         if self.joystick_on:
+            import pygame
             pygame.init()
             self.joystick = pygame.joystick.Joystick(0)
             self.joystick.init()
@@ -249,7 +249,8 @@ class Drone:
                 msg_dict['is_read'].set()
                 zero_point = np.array([0., 0., 0.])
                 if msg._header.srcComponent == 26:
-                    point = [msg.x/1000, msg.y/1000, msg.z/1000]
+                    # point = [msg.x/1000, msg.y/1000, msg.z/1000]
+                    return None
                 elif msg._header.srcComponent == 1:
                     point = [msg.x, msg.y, msg.z]
                 else:
@@ -297,7 +298,7 @@ class Drone:
     def goto(self, point: list | np.ndarray | None = None,
              orientation: list | np.ndarray | None = None,
              apply: bool = False,
-             wait_point: bool | None = True) -> None:
+             wait_point: bool | None = False) -> None:
         """
         Функция перемещает дрон в заданное положение. Если задана точка назначения и вектор ориентации, тогда
         изменится все. Задана только ориентация или только точка, то изменится только нужный параметр.
@@ -320,12 +321,12 @@ class Drone:
             # Здесь будет функция смены отображения ориентации, как self.trajectory_write()
             self.body.orientation = orientation
         if point is not None:
-            self.trajectory_write(self.body.point, point)
+            # self.trajectory_write(self.body.point, point) ошибка
             self.body.point = point
         if self.apply & apply:
             self.apply_position(point)
-        if self.wait_point:
-            self.wait_for_point(self.body.point)
+        if wait_point:
+            self.wait_for_point(self.body.point, accuracy=1e-1)
 
     def send_v(self, v: list | ndarray, ampl: float | int = 1) -> None:
         """
@@ -347,30 +348,37 @@ class Drone:
         Функция задает цикл while на отправку вектора скорости в body с периодом period_send_v
         :return: None
         """
+        print(self.joystick_on)
         if self.joystick_on:
             f = np.array([0., 0., 0., 0., 0., 0., 0., 0.])
             flag_arm = False
+            # print(f"----> {self.speed_flag}")
             while self.speed_flag:
                 pygame.event.pump()
+
                 axes = [round(self.joystick.get_axis(i), 2) for i in range(self.joystick.get_numaxes())]
+
                 if not np.allclose(axes, f, 1e-3):
+                    print(f"keys = {axes}")
                     f = axes
+                    # self.send_v([f[0], -f[1], f[2], -f[3]], 3)
                     if f[5] == 1.0:
-                        self.send_v([f[0], -f[1], f[2], -f[3]], 3)
+                        self.send_v([f[3], f[1], f[2], f[1]], 3)
                     elif f[5] == -1.0:
                         self.send_v(self.body.v)
+                        # loguru.logger.debug("arm_joystick")
                     if f[4] == 1.0:
                         if not flag_arm:
-                            loguru.logger.debug("arm_joystick")
+                            # loguru.logger.debug("arm_joystick")
                             self.drone.arm()
-                            loguru.logger.debug("takeoff_joystick")
+                            # loguru.logger.debug("takeoff_joystick")
                             self.drone.takeoff()
                         flag_arm = True
                     elif axes[4] == -1.0:
                         if flag_arm:
-                            loguru.logger.debug("land_joystick")
+                            # loguru.logger.debug("land_joystick")
                             self.drone.land()
-                            loguru.logger.debug("disarm_joystick")
+                            # loguru.logger.debug("disarm_joystick")
                             self.drone.disarm()
                         flag_arm = False
                     if f[7] == 1:
@@ -386,6 +394,7 @@ class Drone:
         Создает поток, который вызывает функцию v_while() для параллельной отправки вектора скорости
         :return: None
         """
+        self.speed_flag = True
         self.t.append(threading.Thread(target=self.v_while))
         self.t[-1].start()
 

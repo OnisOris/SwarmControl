@@ -29,7 +29,7 @@ from SwarmControl.plotBuilder import zero_check
 # # plotter2.x_dot()
 # # plotter2.y_dot()
 # # plotter2.xy_pred()
-df = pd.read_csv('../plot_out/xyz_Vx_Vy_Vz_t.npy', index_col=0)
+df = pd.read_csv('../plot_out/state_count_3m_4r.csv', index_col=0)
 df.plot(x='t')
 # plt.show()
 # ic(df[['x', 'y', 'z']].to_numpy())
