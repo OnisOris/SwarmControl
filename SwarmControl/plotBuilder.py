@@ -3,10 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
-import matplotlib.pyplot as plt
-import matplotlib as mpl
+
 from ThreeDTool import Up, Dspl, normalization
-mpl.use('Qt5Agg')
 def is_zero(arr):
     if np.allclose(arr, [0., 0., 0.], 1e-8):
         return True
@@ -56,7 +54,11 @@ def zero_check(arr, i):
     else:
         return arr[i]
 class Plotter:
-    def __init__(self, data_path: str, columns=None, title: str = "Plots", out_img_path: str = "./"):
+    def __init__(self, data_path: str, columns=None, title: str = "Plots", out_img_path: str = "./", on=False):
+        if on:
+            import matplotlib.pyplot as plt
+            import matplotlib as mpl
+            mpl.use('Qt5Agg')
         if columns is None:
             self.columns = ['x', 'y', 'z', 'vx', 'vy', 't']
         with open(data_path, 'rb') as f:
