@@ -616,9 +616,9 @@ class Drone:
             self.t.append(threading.Thread(target=self.drone.disarm, args=()))
             self.t[-1].start()
 
-    def takeoff(self, height: float | int = 1.5) -> None:
+    def smart_takeoff(self, height: float | int = 1.5) -> None:
         """
-        Функция отправляет команду на взлет дрона
+        Функция отправляет команду на взлет дрона в отдельном потоке
         :param height: Высота взлета
         :return: None
         """
@@ -633,6 +633,20 @@ class Drone:
         if self.apply:
             self.t.append(threading.Thread(target=smart_takeoff, args=()))
             self.t[-1].start()
+
+    def takeoff(self, height: float | int = 1.5) -> None:
+        """
+        Функция отправляет команду на взлет дрона
+        :param height: Высота взлета
+        :return: None
+        """
+
+        self.drone.takeoff()
+        position = None
+        while position is None:
+            position = self.get_position()
+        x, y, z = position
+        self.goto([x, y, height])
 
     def land(self) -> None:
         """
