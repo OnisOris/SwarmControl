@@ -343,9 +343,10 @@ class Drone:
         elif v.shape == (4,):
             self.drone.set_manual_speed(v[0], v[1], v[2], v[3])
 
-    def v_while(self) -> None:
+    def v_while(self, ampl: float | int = 1) -> None:
         """
         Функция задает цикл while на отправку вектора скорости в body с периодом period_send_v
+        :param ampl: Амплитуда усиления вектора скорости
         :return: None
         """
         print(self.joystick_on)
@@ -386,7 +387,7 @@ class Drone:
                 time.sleep(self.CONFIG['period_send_v'])
         else:
             while self.speed_flag:
-                self.send_v(self.body.v)
+                self.send_v(self.body.v, ampl=ampl)
                 time.sleep(self.CONFIG['period_send_v'])
 
     def set_v(self) -> None:
