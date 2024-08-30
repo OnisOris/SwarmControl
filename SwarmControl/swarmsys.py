@@ -347,6 +347,7 @@ class Drone:
         """
         Функция задает цикл while на отправку вектора скорости в body с периодом period_send_v
         :param ampl: Амплитуда усиления вектора скорости
+        :type ampl: float | int
         :return: None
         """
         print(self.joystick_on)
@@ -390,13 +391,15 @@ class Drone:
                 self.send_v(self.body.v, ampl=ampl)
                 time.sleep(self.CONFIG['period_send_v'])
 
-    def set_v(self) -> None:
+    def set_v(self, ampl: float | int = 1) -> None:
         """
         Создает поток, который вызывает функцию v_while() для параллельной отправки вектора скорости
+        :param ampl: Амплитуда усиления вектора скорости
+        :type ampl: float | int
         :return: None
         """
         self.speed_flag = True
-        self.t.append(threading.Thread(target=self.v_while))
+        self.t.append(threading.Thread(target=self.v_while, args=[ampl]))
         self.t[-1].start()
 
     def speed_change(self, v: list | np.array) -> None:
