@@ -7,7 +7,7 @@ import numpy as np
 import ThreeDTool as tdt
 from ThreeDTool import Line_segment, Polygon, Line, Curve
 from numpy import cos, sin, ndarray, dtype, pi
-from pioneer_sdk import Pioneer
+from mavc import Mavc
 from .body import Body
 from .dspl import Dspl
 import pandas as pd
@@ -179,7 +179,7 @@ class Drone:
                  orientation: np.ndarray = np.array([[1, 0, 0],
                                                      [0, 1, 0],
                                                      [0, 0, 1]]),
-                 drone: Pioneer = None,
+                 drone: Mavc = None,
                  apply: bool = True,
                  joystick_on: bool = False):
         """
@@ -242,30 +242,7 @@ class Drone:
         Функция возвращает координату дрона с фильтром компонентов
         :return: list
         """
-        if 'LOCAL_POSITION_NED' in self.drone.msg_archive:
-            msg_dict = self.drone.msg_archive['LOCAL_POSITION_NED']
-            msg = msg_dict['msg']
-            if not msg_dict['is_read'].is_set() or (msg_dict['is_read'].is_set()):
-                msg_dict['is_read'].set()
-                zero_point = np.array([0., 0., 0.])
-                if msg._header.srcComponent == 26:
-                    # point = [msg.x/1000, msg.y/1000, msg.z/1000]
-                    return None
-                elif msg._header.srcComponent == 1:
-                    point = [msg.x, msg.y, msg.z]
-                else:
-                    return None
-                if filter:
-                    if not np.all(np.equal(point, zero_point)):
-                        return point
-                    else:
-                        return None
-                else:
-                    return point
-            else:
-                return None
-        else:
-            return None
+        return self.drone.attitude
 
     def attach_body(self, body: Body) -> None:
         """
